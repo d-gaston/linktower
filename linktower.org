@@ -1,0 +1,1196 @@
+
+#+OPTIONS: html-postamble:nil
+#+TITLE: linktower source code
+
+
+* Introduction
+
+This document describes linktower, a web application for storing and
+organzing links. The description is both natural language and
+executable code; in other words, a /literate program/. linktower is
+like a pastebin site, but unlike
+most pastebin sites, it provides functionality for exploring
+what other users have posted.
+
+** Overview
+
+The site is implemented as a simple Flask application with no
+dependencies except for what come with Flask. Since I'm more
+interested in functionality than appearance at the moment, the
+frontend is plain, unstyled html. The backend uses sqlite as the
+database and directly queries it with plain sql. I deliberately chose
+to forgo an ORM mostly to better familiarize myself with sql.
+
+** Nomenclature
+
+To stick with one conceptual theme, I use the following terms:
+- *room:* a collection of links and labels
+- *floor:* a collection of rooms
+- *door:* a link from a room to another room or floor (i.e. an internal link)
+
+
+ 
+
+* Imports
+
+#+begin_src python :tangle app.py
+from flask import Flask, render_template, request, g, redirect, url_for, send_from_directory
+from werkzeug.security import generate_password_hash, check_password_hash
+import sqlite3
+import random
+import string
+from urllib.parse import urlparse
+app = Flask(__name__)  
+#+end_src
+
+* The Database and Methods to Interact with it
+
+** Schema
+
+
+The central concept in this application /Room/. A room is a
+collection of links that has a title, creator, and password. In order
+to edit or delete a room, the creator and  password must be
+provided. A new password can be set when editing a room. Additionally,
+a randomly generated url slug where the room can be found is store
+(i.e. room/<creator/<slug>). Rooms have links and domains, which are
+described below.
+
+#+begin_src sql :tangle schema.sql
+DROP TABLE IF EXISTS Rooms;
+CREATE TABLE Rooms (
+    id INTEGER PRIMARY KEY autoincrement,
+    title TEXT NOT NULL,
+    floor_name TEXT NOT NULL,
+    slug TEXT NOT NULL,
+    password_hash TEXT NOT NULL
+);
+
+#+end_src 
+
+
+The url of a link *MUST* start with https:// or http://. Although I could split the description into its own table (since the
+same link can have more than one description), I figured that the
+overlap of links between rooms would be small, so some redundancy is
+allowed in order to simplify the schema somewhat. Each link can also
+have zero or one labels (no label will be the empty string ''), which
+allows users to organize their room somewhat. Rooms and Links have a
+one-to-man relationship (one room has multiple links, each link
+belongs to one room. The domain name is stored in addition to the url
+in order to simplify finding rooms by what domains they list (e.g.,
+find all rooms that have a link to example.com)
+
+#+begin_src sql :tangle schema.sql
+DROP TABLE IF EXISTS Links;
+CREATE TABLE Links (
+    id INTEGER PRIMARY KEY autoincrement,
+    url TEXT NOT NULL,
+    domainName TEXT NOT NULL,
+    description TEXT NOT NULL,
+    label TEXT NOT NULL,
+    room_id INTEGER NOT NULL,
+    FOREIGN KEY (room_id) REFERENCES Rooms(id)
+);
+#+end_src
+
+
+In order to initialize the database, the command ~sqlite filename.db <
+schema.sql~ is run on the command line.
+
+
+** Connecting to and Querying the Database From Python
+
+ This task is thoroughly covered in [[https://flask.palletsprojects.com/en/2.2.x/patterns/sqlite3/][the Flask documentation.]]
+
+*** open\under{}db
+ 
+The ~open_db~ function is a helper for ~query_db~ below. The line ~db.row_factory = sqlite3.Row~ lets us read the row into a
+python dictionary instead of a plain tuple, which allows access to the
+data based on column names rather than numeric indices. According to
+[[https://docs.python.org/3/library/sqlite3.html#sqlite3-howto-row-factory][the python sqlite documentation]] there is little overhead for
+this. The database connection itself is stored in Flask's global
+variable ~g~. Among other things, this means we don't have to open a
+new connectione every time we query the database.
+
+#+begin_src python :tangle app.py
+def open_db():
+    db = getattr(g, '_database', None)
+    if db is None:
+        db = g._database = sqlite3.connect("test.db")
+        db.row_factory = sqlite3.Row
+    return db
+#+end_src
+
+*** query\under{}db
+
+
+A list of dicts is returned from execution, which can be iterated over by the
+caller. *Additionally, the id of the last inserted row is returned*
+(~results,_ = ...~ is used when the id is not needed). This saves having to
+immediately query the database for the thing we just inserted.
+#+begin_src python :tangle app.py
+
+def query_db(query, args=()):
+    '''
+    Returns a list of dicts of column name to value
+    '''
+    db = open_db()
+    cur = db.cursor()
+    # Turn on foreign key support as per https://sqlite.org/foreignkeys.html
+    cur.execute("PRAGMA foreign_keys=ON")
+    cur.execute(query, args)
+    id = cur.lastrowid
+    rv = cur.fetchall()
+    cur.close()
+    return rv,id
+#+end_src 
+
+*** close\under{}connection
+
+The database connection is after Flask finishes the request. At this
+point changes to the database are
+committed 
+
+#+begin_src python :tangle app.py
+@app.teardown_appcontext
+def close_connection(exception):
+    db = getattr(g, '_database', None)
+    if db is not None:
+        db.commit()
+        db.close()
+        
+#+end_src 
+
+** Methods that Query the Database
+
+*** Insert Room
+The room is created first and the resulting room_id is used when
+creating the link entries
+
+#+name: insert_room_in_db
+#+begin_src python :tangle app.py 
+def insert_room_in_db(roomTitle, roomFloor_Name, roomPassword, labelToLinks, slug):
+    password_hash =generate_password_hash(roomPassword)
+    insertRoomQuery = '''
+    INSERT INTO Rooms(title, floor_name, slug, password_hash)
+    VALUES (:title, :floor_name, :slug, :password_hash);
+    '''
+    
+    _, room_id = query_db(insertRoomQuery,
+                     {"title":roomTitle, "floor_name":roomFloor_Name,
+                      "slug":slug, "password_hash": password_hash})    
+
+    insertLinkQuery = '''
+    INSERT INTO Links (url, domainName, description, label, room_id)
+    VALUES (:url, :domainName, :description, :label, :room_id);
+    '''
+    for label, links in labelToLinks.items():
+        for link in links:
+            domainName = urlparse(link['url']).netloc
+            query_db(insertLinkQuery,
+                     {'url':link['url'], 'domainName':domainName, 'description':link['description'],
+                      'label':label,'room_id':room_id})
+#+end_src
+
+*** Update Room
+
+The record in the Rooms table is updated if there is a change in one
+of the fields, otherwise it is unmodified.
+
+Links whose label, description, or url are changed are deleted, and
+the updated version is inserted. 
+#+begin_src python :tangle app.py
+def update_room_in_db(changedRoomInfo, addedLinks, removedLinks, roomId):
+
+    updateTitleQuery = '''
+    UPDATE Rooms
+    SET title = :value
+    WHERE id = :room_id
+    '''
+    updateFloorNameQuery = '''
+    UPDATE Rooms
+    SET floor_name  = :value
+    WHERE id = :room_id
+    '''
+    updatePasswordQuery = '''
+    UPDATE Rooms
+    SET password_hash = :value
+    WHERE id = :room_id
+    '''
+    if 'title' in changedRoomInfo:
+        query_db(updateTitleQuery, {'value':changedRoomInfo['title'], 'room_id':roomId})
+    if 'floor_name' in changedRoomInfo:
+        query_db(updateFloorNameQuery, {'value':changedRoomInfo['floor_name'], 'room_id':roomId})
+    if 'password' in changedRoomInfo:
+        query_db(updatePasswordQuery,{'value':generate_password_hash(changedRoomInfo['password']),'room_id':roomId})
+       
+
+    deleteLinkQuery = '''
+    DELETE FROM Links
+    WHERE url = :url
+    AND room_id = :room_id;
+    
+    '''
+    for link in removedLinks:
+        query_db(deleteLinkQuery, {'url':link['url'], 'room_id':roomId})
+
+        
+    insertLinkQuery = '''
+    INSERT INTO Links (url, domainName, description, label, room_id)
+    VALUES (:url, :domainName, :description, :label, :room_id);
+    '''
+    for link in addedLinks:
+        #insert links
+        domainName = urlparse(link['url']).netloc
+        query_db(insertLinkQuery,
+                     {'url':link['url'], 'domainName':domainName, 'description':link['description'],
+                      'label':link['label'],'room_id':roomId})    
+#+end_src
+
+*** Delete Room
+
+#+begin_src python :tangle app.py
+def delete_room(room_id):
+    deleteLinksQuery = '''
+    DELETE FROM Links
+    WHERE room_id = :room_id;
+    '''
+    query_db(deleteLinksQuery, {'room_id':room_id})
+
+    deleteRoomQuery = '''
+    DELETE FROM Rooms
+    WHERE id = :room_id;
+    '''
+    query_db(deleteRoomQuery, {'room_id':room_id})
+
+
+    
+#+end_src
+
+*** Generating Room URL Slugs
+
+A room slug is 8 random lowercase letters, which works out to
+208,827,064,576 unique options. Although collision is practically
+impossible at this scale, I'm going to check anyway.
+
+#+begin_src python :tangle app.py
+def create_room_slug():
+    getSlugsQuery = '''
+    SELECT slug FROM Rooms;
+    '''
+    results,_ = query_db(getSlugsQuery)
+    slugs = [result['slug'] for result in results]
+    print(slugs)
+    newSlug = ''.join(random.choice(string.ascii_lowercase) for i in range(8))
+    if newSlug in slugs:
+        #Should basically never get here!
+        while newSlug in slugs:
+            newSlug = ''.join(random.choice(string.ascii_lowercase) for i in range(8))
+    return newSlug
+    
+    
+#+end_src
+
+*** Verify Floor Names
+
+- If floor\under{}name doesn't already exist return true (user is
+  allowed to create the floor)
+- If floor\under{}name exists, check password
+  - if password is right, return true 
+  - if password is wrong, return false
+#+name: verify_floor_name
+#+begin_src python :tangle app.py
+def verify_floor_name(floor_name, password):
+    getGroupIdQuery = '''
+    SELECT * FROM Rooms
+    WHERE floor_name = :floor_name;
+    '''
+    results,_ = query_db(getGroupIdQuery, {'floor_name':floor_name})
+    if not results:
+        return True
+    password_hash = results[0]['password_hash']
+    return check_password_hash(password_hash, password)
+#+end_src
+
+
+*** Getters
+Methods that fetch an entity or group of entites based on a given criterion
+
+
+Since slugs are unique, query\under{}db will return a list of exactly
+one room, which is returned.
+#+begin_src python :tangle app.py
+def get_room_by_slug(slug):
+    getRoomQuery = '''
+    SELECT * FROM Rooms
+    WHERE slug = :slug;
+    '''
+    rooms,_ = query_db(getRoomQuery, {"slug":slug})
+    if not rooms:
+        return {}
+    #assert len(rooms) == 1
+    return rooms[0]
+
+#+end_src
+
+
+#+name: get_links_for_room
+#+begin_src python :tangle app.py
+def get_links_for_room(roomId):
+    getLinksQuery = '''
+    SELECT * FROM Links
+    WHERE room_id = :roomId;
+    '''
+    links,_ = query_db(getLinksQuery, {"roomId":roomId})
+    return links
+#+end_src
+
+
+#+begin_src python :tangle app.py
+def get_rooms_by_floor_name(floor_name):
+    getRoomsQuery = '''
+    SELECT * FROM Rooms
+    WHERE floor_name = :floor_name
+    '''
+    return query_db(getRoomsQuery, {'floor_name':floor_name})[0]
+#+end_src
+
+
+The following two methods return a random number of records from the
+Rooms table, possibly restricted to those having links to a specified
+domain. In order to apply this restriction, a subquery to the Links
+table is used.
+
+Returns a list of floor\under{}name strings
+#+begin_src python :tangle app.py
+def get_random_floors(num, domain):
+    if domain:
+        getFloorsQuery = '''
+        SELECT DISTINCT floor_name FROM Rooms
+        WHERE id IN
+        (SELECT room_id FROM Links WHERE domainName = :domain)
+        ORDER BY RANDOM()
+        LIMIT :num
+        '''
+        floors,_ = query_db(getFloorsQuery, {'num':num, 'domain':domain})
+        return [floor['floor_name'] for floor in floors]
+    else:
+        getFloorsQuery = '''
+        SELECT DISTINCT floor_name FROM Rooms
+        ORDER BY RANDOM()
+        LIMIT :num
+        '''
+        floors,_ = query_db(getFloorsQuery, {'num':num})
+        return [floor['floor_name'] for floor in floors]
+    
+#+end_src
+
+
+
+#+begin_src python :tangle app.py
+def get_random_rooms(num, domain):
+    if domain:
+        getRoomsQuery = '''
+        SELECT * FROM Rooms
+        WHERE id IN
+        (SELECT room_id FROM Links WHERE domainName = :domain)
+        ORDER BY RANDOM()
+        LIMIT :num
+        '''
+        rooms,_ = query_db(getRoomsQuery, {'num':num, 'domain':domain})
+        return rooms
+    else:
+        getRoomsQuery = '''
+        SELECT * FROM Rooms
+        ORDER BY RANDOM()
+        LIMIT :num
+        '''
+        rooms,_ = query_db(getRoomsQuery, {'num':num})
+        return rooms
+#+end_src
+
+Returns a list of room records
+#+begin_src python :tangle app.py
+def get_random_links(num, domain):
+    if domain:
+        getLinksQuery = '''
+        SELECT * FROM Links
+        WHERE domainName = :domain
+        ORDER BY RANDOM()
+        LIMIT :num;
+        '''
+        links,_ = query_db(getLinksQuery, {'domain':domain, 'num':num})
+        return links
+    else:
+        getLinksQuery = '''
+        SELECT * FROM Links
+        ORDER BY RANDOM()
+        LIMIT :num;
+        '''
+        links,_ = query_db(getLinksQuery, {'num':num})
+        return links
+        
+    
+#+end_src
+
+Doors are basically just internal backlinks. If room A links to room
+B, then room B will display that it has a door to room A. For local
+execution, the localhost IP address is used for the urls
+#+begin_src python :tangle app.py
+def get_doors_for_room(slug):
+    getLinksQuery = '''
+    SELECT * FROM Links
+    WHERE url = :url;
+    '''
+    url = 'http://127.0.0.1:5000/room/{}'.format(slug)
+    links,_ = query_db(getLinksQuery, {'url':url})
+    room_ids = [link['room_id'] for link in links]
+
+    getRoomQuery = '''
+    SELECT * FROM Rooms
+    WHERE id = :id;
+    '''
+    doors = []
+    for id in room_ids:
+        rooms,_ = query_db(getRoomQuery, {'id':id})
+        if not rooms:
+            pass
+        else:
+            #assert len(rooms) == 1
+            if rooms[0]['slug'] != slug:
+                doors.append(rooms[0])
+    return doors
+        
+    
+#+end_src
+
+* Routes
+
+** Static Pages
+
+*** Home
+#+begin_src python :tangle app.py
+@app.route('/', methods=['GET'])
+def home():
+    return render_template('index.html')
+#+end_src
+
+*** Help
+#+begin_src python :tangle app.py
+@app.route('/help', methods=['GET'])
+def help():
+    return render_template('help.html')
+#+end_src
+
+
+*** Source code
+
+Returns this document, which is generated from the org file.
+#+begin_src python :tangle app.py
+@app.route('/source', methods=['GET'])
+def source():
+    return send_from_directory('','linktower.html')
+#+end_src
+
+** New Room Form (GET)
+
+A blank form for entering the necessary information is served to the user.
+
+
+#+begin_src python :tangle app.py
+@app.route('/new', methods=['GET'])
+def get_new_form():
+    return render_template("new.html", title='', links='', floor_name='', password='', errors=[])
+#+end_src
+
+** New Room Form (POST)
+
+Next we set up a route for a ~POST~ request to the ~/room/new~ url for
+the user to submit the form. If there are any errors in the
+submission, the forms are repopulated with the user's input and the
+errors are displayed to the user.
+
+#+begin_src python :noweb yes :tangle app.py
+
+@app.route('/new', methods=['POST'])
+def post_new_form():
+    errors = check_form_validity(request)
+    form = request.form
+    roomSlug = create_room_slug()
+    links, badLinks = parse_links_form(request.form['links'])
+    labelToLinks = associate_label_to_links(links)
+    if badLinks or  errors:
+        return render_template("new.html", title=form['title'], links=form['links'],
+                               floor_name=form['floor_name'], password=form['password'], errors=badLinks+errors)
+    insert_room_in_db(form['title'], form['floor_name'], form['password'], labelToLinks, roomSlug)
+    return redirect(url_for('view_room', slug=roomSlug)) 
+#+end_src
+
+** View Room
+Gets all links for a given room.
+
+#+begin_src python :tangle app.py
+
+@app.route('/room/<slug>', methods=['GET'])
+def view_room(slug):
+    room = get_room_by_slug(slug)
+    if not room:
+        return render_template("not_found.html", msg='room at {}'.format(slug))
+    links = get_links_for_room(room['id'])
+    labelToLinks = associate_label_to_links(links)
+    doors = get_doors_for_room(slug)
+    return render_template("room.html", room=room, labelToLinks=labelToLinks, doors=doors)
+#+end_src
+
+
+
+
+** Edit Room Form (GET)
+
+The edit form is be popluated with the current contents of the
+room. If the room does not exist, an error page is returned. The links
+from the database are converted back to markdown form [description](url)
+
+#+begin_src python :tangle app.py
+@app.route('/room/<slug>/edit', methods=['GET'])
+def get_edit_form(slug):
+    room = get_room_by_slug(slug)
+    if not room:
+        return render_template("not_found.html", msg='room at {}'.format(slug))
+    links = get_links_for_room(room['id'])
+    labelToLinks = associate_label_to_links(links)
+    linksform = []
+    for label, linkslist in labelToLinks.items():
+        linksform.append(label)
+        for link in linkslist:
+            linksform.append("[{}]({})".format(link['description'], link['url']))
+        linksform.append('\n')
+    return render_template("edit.html", title=room['title'], links='\n'.join(linksform),
+                               floor_name=room['floor_name'], password='', errors=[])
+
+    
+    
+#+end_src
+
+** Edit Room Form (POST)
+Posting the edit form requires many of the same steps as posting the
+new form, but after parsing the form contents must be diffed with the
+existing contents of the room, and the room (and associated links)
+selectively updated.
+
+*** Diffing Links
+New links are parsed from the form, while the old links are fetched
+from the database. Each are converted into a set of tuples of ~(url,
+label, description)~ (dicts cannot be in a set), and the sets are
+subtracted from each other to find the sets of added links and removed
+links. Links are also considered "removed" if any field is
+changed. The updated versions will be in the new set. These are then
+converted from tuples to dicts to be inserted/deleted in the database.
+
+
+#+begin_src python :tangle app.py
+@app.route('/room/<slug>/edit', methods=['POST'])
+def post_edit_form(slug):
+
+    #get room data
+    room = get_room_by_slug(slug)
+    if not room:
+        return render_template("not_found.html", msg='room at {}'.format(slug))
+
+    #get form data
+    errors = check_form_validity(request)
+    form = request.form
+    links, badLinks = parse_links_form(request.form['links'])
+    if badLinks or errors:
+        return render_template("edit.html", title=form['title'], links=form['links'],
+                               floor_name=form['floor_name'], password=form['password'], errors=badLinks+errors)
+    
+    #normalize links to common format (list of dicts)
+    newLinks = set([(link['url'], link['label'], link['description'])
+                    for link in links])
+    oldLinks = set([(link['url'], link['label'], link['description'])
+                    for link in get_links_for_room(room['id'])])
+    #diff links
+    addedLinks = [{'url':link[0], 'label':link[1], 'description':link[2]} for link in list(newLinks - oldLinks)]
+    removedLinks = [{'url':link[0], 'label':link[1], 'description':link[2]} for link in list(oldLinks - newLinks)]
+    
+    
+    changedRoomInfo = {}
+    if form['title'] != room['title']:
+        changedRoomInfo['title'] = form['title']
+    if form['floor_name'] != room['floor_name']:
+        changedRoomInfo['floor'] = form['floor']
+    if form['new_password']:
+        changedRoomInfo['password'] = form['new_password']
+        
+
+    
+    update_room_in_db(changedRoomInfo, addedLinks, removedLinks, room['id'])
+    return redirect(url_for('view_room', slug=slug)) 
+
+#+end_src
+
+** Delete Room (GET)
+
+
+
+#+begin_src python :tangle app.py
+@app.route('/room/<slug>/delete', methods=['GET'])
+def get_delete_room_form(slug):
+    room = get_room_by_slug(slug)
+    if not room:
+        return render_template("not_found.html", msg='room at {}'.format(slug))
+    return render_template("delete.html", room=room, errors=[], success=False)
+#+end_src
+
+
+** Delete Room (POST)
+
+
+#+begin_src python :tangle app.py
+@app.route('/room/<slug>/delete', methods=['POST'])
+def post_delete_room_form(slug):
+    room = get_room_by_slug(slug)
+    password = request.form['password']
+    if not room:
+        return render_template("not_found.html", msg='room at {}'.format(slug))
+    if not check_password_hash(room['password_hash'], password):
+        return render_template("delete.html", room=room, errors=['Incorrect password'], success=False)
+    delete_room(room['id'])
+    return render_template("delete.html", room=room, errors=[], success=True)
+#+end_src
+
+
+
+
+** Show All Rooms on Floor
+
+Gets a list of all rooms on a floor, returns an error page if the floor
+is not found.
+#+begin_src python :tangle app.py
+@app.route('/floor/<floor_name>', methods=['GET'])
+def list_rooms_on_floor(floor_name):
+    rooms = get_rooms_by_floor_name(floor_name)
+    if not rooms:
+       return  render_template("not_found.html", msg='floor with name {}'.format(floor_name))
+    return render_template("floor_name.html", floor_name=floor_name, rooms=rooms)
+#+end_src
+
+** Discover (GET)
+Returns a random selection of 10 floors, rooms, and links.
+
+#+begin_src python :tangle app.py
+@app.route('/discover', methods=['GET'])
+def discover_get():
+    floors = get_random_floors(10, '')
+    rooms = get_random_rooms(10, '')
+    links = get_random_links(10, '')    
+    return render_template('discover.html', num=10, floors=floors, rooms=rooms, links=links)
+#+end_src
+
+** Discover (POST)
+
+Returns a random selection of at most 10 floors, rooms and links
+containing the given domain, or 10 random floors, rooms and links if
+no domain is given.
+
+#+begin_src python :tangle app.py
+@app.route('/discover', methods=['POST'])
+def discover_post():
+    form = request.form
+    floors = get_random_floors(10, form['domain'])
+    rooms = get_random_rooms(10, form['domain'])
+    links = get_random_links(10, form['domain'])
+    return render_template('discover.html', num=10, floors=floors, rooms=rooms, links=links)
+#+end_src
+
+* Helper Methods
+
+** Parsing the Links Form
+
+The links form is expected to contain links in markdown format
+[description](url) and labels that are lines ending in a colon. At least one link is mandatory, labels are
+optional. Each link and label must be on its own line. As a
+result, the link form will consist of markdown links potentially
+interspersed with labels. Thus, the links form can have the following structure:
+
+#+begin_example
+[unlabeled link](url)
+Label1:
+[link for label1](url)
+[2nd link for label1](url)
+Labels can have spaces:
+[link for Labels can have spaces](url)
+Labels with no links are ignored:
+#+end_example
+
+The following method parses the link form into a list of dicts with
+the structure ~{'description':, 'url':, 'label':}~, which mirrors the
+link representation in the database
+
+Malformed labels and links, as well as any other rejected input, is
+returned in a list
+#+NAME: parse_links_form
+#+begin_src python :tangle app.py 
+def parse_links_form(form):
+    links = []
+    currentLabel = ''
+    badInput = []
+    existingUrls = set()
+    for line in form.splitlines():
+        if line.endswith(':'):
+            currentLabel = line
+        elif len(set(line) - set(string.whitespace)) == 0:
+            pass
+        #parse the markdown link for its components 
+        elif line.startswith('[') and '](' in line and line.endswith(')'):
+            description = line[1:line.index('](')]
+            url = line[line.index('](')+2:-1]
+            parsedUrl = urlparse(url)
+            
+            #check if url is valid
+            if not all([parsedUrl.scheme, parsedUrl.netloc, parsedUrl.path]):
+                badInput.append(line + " Could not parse link. Try copying the link from your browser's search bar")
+            elif url in existingUrls:
+                badInput.append(line + " Duplicate urls are not accepted. Delete this line and resubmit the form")
+            else:
+                links.append({'description':description, 'url':url, 'label':currentLabel})
+                existingUrls.add(url)
+            
+        else:
+            badInput.append(line + " This line is not recognized as a link or label")
+
+    return (links, badInput)        
+#+end_src
+
+** Associated Each Label to its Links
+
+Returns a *sorted* map of each label to a list of links. Unlabeled
+links are associated to the empty string. Sorting is done so that the
+unlabeled links appear first on the room page.
+#+begin_src python :tangle app.py
+def associate_label_to_links(links):
+    labelToLinks = {}
+    for link in links:
+        label = link['label']
+        labelToLinks.setdefault(label, []).append(link)
+    return {i[0]:i[1] for i in sorted(labelToLinks.items())} 
+#+end_src
+
+** Check Form Validity
+
+This helper is used whenthe edit and new form are posted. It returns
+a list of errors found, or an empty list if no errors are found. This
+is where password validation is done for a room.
+#+name: check_form_validity
+#+begin_src python :tangle app.py
+def check_form_validity(requests):
+    roomTitle = request.form['title']
+    roomFloor_Name = request.form['floor_name']
+    roomPassword = request.form['password']
+    roomLinks = request.form['links']
+    
+    #check for empty fields
+    
+    errors = []
+    
+    if not roomTitle:
+        errors.append('Title field is empty')
+    if not roomFloor_Name:
+        errors.append('Floor Name field is empty')
+    if not roomPassword:
+        errors.append('Password field is empty')
+    if not roomLinks:
+        errors.append('Title field is empty')
+        
+    illegalChars = set(roomFloor_Name) - set(string.ascii_letters + string.digits)
+    if illegalChars:
+        errors.append('Floor name must be ascii letters and numbers only, {} not allowed'.format(illegalChars))
+    if not verify_floor_name(roomFloor_Name, roomPassword):
+        errors.append('Incorrect password for floor {}'.format(roomFloor_Name))
+    return errors
+#+end_src
+
+
+
+* Views
+
+The Jinja template system is used to generate HTML. Parameters are
+passed to templates through the ~render_template~ method, and can then
+be used as normal python code within the template.
+
+** Base Template
+The HTML from templates that inherit from base.html is inserted
+between the tags ~{% block content %}{% endblock %}~
+
+#+begin_src html :tangle templates/base.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+{% block head %}
+    <!-- <link rel="stylesheet" href="static/style.css" />
+<style>
+td {
+  text-align: left;
+  vertical-align: middle;
+}
+th {
+  text-align: left;
+  vertical-align: middle;
+}
+<body style="padding-left: 5%; padding-right: 5%;">
+</style>
+ -->
+<a href="/new">new</a> <a href="/discover">discover</a> <a href="/help">help</a> <a href="/">home</a><br>
+<title>{% block title %}{% endblock %} - LinkRoom</title>
+{% endblock %}
+</head>
+<body >
+  <div id="content">{% block content %}{% endblock %}</div>
+  <div id="footer">
+    {% block footer %}{% endblock %}
+  </div>  
+</body>
+</html>
+#+end_src
+
+** Form Template
+
+The ~form.html~ template is the basis for the ~new~ and ~edit~ pages,
+which are nearly identical . The blocks to be filled in are ~title~, ~header~ and ~fields~.
+
+_Parameters_
+- *title* the raw text from the title input box
+- *links* the raw text from the links input box
+
+#+begin_src html :tangle templates/form.html
+{% extends "base.html" %}
+{% block title %}{% endblock %}
+{% block content %}
+<h1> {% block header %}{% endblock %} </h1>
+<ul>
+ <li>labels must end in a colon:</li>
+ <li>[links are in markdown format](<a href="https://www.markdownguide.org/basic-syntax#links">https://www.markdownguide.org/basic-syntax#links</a>)</li>
+ <li>one label <strong>or</strong> link per line</li>
+ <li>order is not preserved: labels will be displayed in alphabetical order</li>
+</ul>
+
+Title:<br>
+<textarea name="title" rows="1" cols="80" form="linkform">{{ title }}</textarea> 
+<br><br>
+Links:<br>
+<textarea name="links" rows="32" cols="80" form="linkform">{{ links }}</textarea>
+<br>
+
+<form method="POST" id="linkform">
+  <br>
+  {% block fields %}{% endblock %}
+  <input type="submit" value="Save Room">
+</form>
+{% if errors %}
+    <h2>Errors:</h2>
+    <blockquote>
+      {% for error in errors %}
+         <li> {{ error }} </li><br>
+      {% endfor %}
+    </blockquote>
+{% endif %}
+{% endblock %}
+#+end_src
+
+*** New Form
+
+_Parameters_
+- *floor\under{}name* the raw text from the floor\under{}name input box
+- *password* the raw text from the password input box
+
+#+begin_src html :tangle templates/new.html
+{% extends "form.html" %}
+{% block title %} new room {% endblock %}
+{% block header %} new room {% endblock %}
+{% block fields %}
+<dl>
+  <dt> floor name: </dt>
+  <dd><input type="text" name="floor_name" value="{{ floor_name }}"></dd>
+  <dt>password (do <strong>not</strong> lose, can't be recovered):</dt>
+  <dd><input type="text" name="password" value="{{ password }}"></dd>
+</dl>
+ 
+  
+  
+  
+{% endblock %}
+#+end_src
+
+*** Edit Form
+
+_Parameters_
+- *floor\under{}name* the raw text from the floor\under{}name input box
+- *password* the raw text from the password input box
+- *new\under{}password* the raw text from the new\under{}password input box
+
+#+begin_src html :tangle templates/edit.html
+{% extends "form.html" %}
+{% block title %} edit room {% endblock %}
+{% block header %} edit room {% endblock %}
+{% block fields %}
+  <dl>
+    <dt>floor name: </dt>
+    <dd><input type="text" name="floor_name" value="{{ floor_name }}"></dd>
+    <dt>password:</dt>
+    <dd><input type="text" name="password" value="{{ password }}"></dd>
+    <dt>set new password (optional):</dt>
+    <dd><input type="text" name="new_password" value=""></dd>
+  </dl>
+
+   
+
+{% endblock %}
+#+end_src
+
+
+
+** Room Template
+
+Unlabeled links are rendered on the same indentation as labels, while
+labeled links are indented relative to the labels. Recall that
+unlabeled links are associated to the empty string in the
+~labelToLinks~ dict.
+
+_Parameters_
+- *room* a dict corresponding to the room schema see
+- *labelToLinks* a dict of label => list(link) see
+- *doors* list of room dicts
+
+
+#+begin_src html :tangle templates/room.html
+{% extends "base.html" %}
+{% block title %}{{ room['title'] }}{% endblock %}
+{% block content %}
+<h1> {{ room['title'] }} </h1> 
+on floor <a href="/floor/{{ room['floor_name'] }}">{{ room['floor_name'] }}</a>
+<p><a href="/room/{{ room['slug'] }}/edit">edit</a>
+<a href="/room/{{ room['slug'] }}/delete">delete</a></p>
+<br>
+{% for label, links in labelToLinks.items() %}
+    {% if label == '' %}
+        {% for link in links %}
+            
+            <a href="{{ link['url'] }}">{{ link['description'] }}</a> ({{ link['domainName'] }})<br>
+ 
+        {% endfor %}  
+    {% else %}
+        <strong> {{ label  }} </strong>
+        <blockquote>
+        {% for link in links %}
+            
+            <a href="{{ link['url'] }}">{{ link['description'] }}</a>  ({{ link['domainName'] }})<br>
+ 
+        {% endfor %}
+        </blockquote>
+    {% endif %}
+{% endfor %}
+<h4>Doors</h4>
+{% for door in doors %}
+    <a href="{{ door['slug'] }}">{{ door['title'] }}</a> on floor <a href="/floor/{{ door['floor_name'] }}"> {{ door['floor_name'] }}</a><br>
+{% endfor %}
+{% endblock %}
+
+#+end_src
+
+** Delete Room
+
+_Parameters_
+- *room* a dict corresponding to the room schema see
+- *success* a boolean flag which is true when the delete operation is
+  executed and false otherwise. If the room has not yet been deleted,
+  then the form will displayed, otherwise a message
+#+begin_src html :tangle templates/delete.html
+{% extends "base.html" %}
+{% block title %} Delete Room {{ room['title'] }}{% endblock %}
+{% block content %}
+<h1> delete room "{{ room['title'] }}" </h1>
+{% if not success %}
+  <h3>THIS WILL PERMENANTLY DELETE THE ROOM</h3>
+  <form method="POST" id="deleteform">
+    <br>
+    Password: <input type="text" name="password" value="">
+    <input type="submit" value="Delete Room">
+  </form>
+{% else %}
+  <p> Successfully deleted </p>
+{% endif %}
+{% if errors %}
+    <h2>Errors:</h2>
+    <blockquote>
+      {% for error in errors %}
+         <li> {{ error }} </li><br>
+      {% endfor %}
+    </blockquote>
+{% endif %}
+{% endblock %}
+
+#+end_src
+
+
+** Floor Template
+
+_Parameters_
+- *rooms* a list of dicts corresponding to the room schema see
+- *floor\under{}name* string corresponding to the floor\under{}name
+  field in the room table
+
+
+#+begin_src html :tangle templates/floor_name.html
+{% extends "base.html" %}
+{% block title %}Floor {{ floor_name }}{% endblock %}
+{% block content %}
+<h1> you are on floor {{ floor_name }} </h1>
+<h3>Here you can find the following rooms:</h3>
+{% for room in rooms %}
+    <a href="/room/{{ room['slug'] }}">{{ room['title'] }}</a><br>
+{% endfor %}
+{% endblock %}
+
+#+end_src
+
+** Discover
+_Parameters_
+- *floors* a list of strings
+- *rooms* a list of dicts corresponding to the room schema see
+- *links* a list of dicts with the keys {'url', 'description', 'domain'}
+
+#+begin_src html :tangle templates/discover.html
+{% extends "base.html" %}
+{% block title %} Discover {% endblock %}
+{% block content %}
+<h1> discover </h1>
+<form method="POST" id="discoverform">
+  <br>
+  containing the domain: <input type="text" name="domain" value="">
+  <input type="submit" value="discover!">
+</form>
+<br>
+(the <strong>domain</strong> is the part of the url displayed in parenthesis after each link)
+<br><br>
+<strong>floors</strong>
+<blockquote>
+  {% for floor in floors %}
+    <a href="/floor/{{ floor }}">{{ floor }}</a><br>
+  {% endfor %}
+</blockquote>
+<strong>rooms</strong>
+<blockquote>
+  {% for room in rooms %}
+    <a href="/room/{{ room['slug'] }}">{{ room['title'] }}</a><br>
+  {% endfor %}
+</blockquote>
+
+<strong>links</strong>
+<blockquote>
+  {% for link in links %}
+    <a href="{{ link['url'] }}">{{ link['description'] }}</a> ({{ link['domainName'] }}) <br>
+  {% endfor %}
+</blockquote>
+
+
+{% endblock %}
+
+#+end_src
+
+** Homepage
+
+#+begin_src html :tangle templates/index.html
+{% extends "base.html" %}
+{% block title %}linktower{% endblock %}
+{% block content %}
+<h1>home</h1>
+
+<h4>what</h4>
+
+<ul>
+  <li>linktower is a pastebin for links only.</li>
+  <li>a "room" is a collection of links.</li>
+  <li>a "floor" is a collection of rooms.</li>
+  <li><a href="/new">"new"</a> to make your own.</li>
+  <li><a href="/discover">"discover"</a> to browse.</li>
+</ul>
+
+<h4>why</h4>
+<ul>
+  <li>more explorable than a typical pastebin site</li>
+  <li>minimalist <a href="/source">design</a></li>
+  <li>fully documented <a href="/source">source code</a></li>
+  <li>no registration</li>
+  <li>no tracking</li>
+  <li>i like lists</li>
+</ul>
+
+<h4>how</h4>
+<ul>
+  <li>python + flask + sqlite + html</li>
+  <li><a href="https://orgmode.org/">org mode</a></li>
+  <li><a href="http://literateprogramming.com">literate programming</a></li>
+</ul>
+
+<h4>rules</h4>
+<ul>
+  <li>don't link to anything illegal</li>
+  <li>no spamming</li>
+  <li>no nsfw</li>
+  <li><a href="/license">license</a></li>
+</ul>
+
+<h4>get</h4>
+<ul>
+  <li><a href="/source">org file w/code + docs</a></li>
+</ul>
+{% endblock %}
+#+end_src
+
+** Help
+#+begin_src html :tangle templates/help.html
+{% extends "base.html" %}
+{% block title %}linktower{% endblock %}
+{% block content %}
+<h1>help</h1>
+
+<h4>example</h4>
+<blockquote>
+[unlabeled link](https://example.com/)<br>
+Label1:<br>
+[link for label1](https://example.com/links_must_be_unique)<br>
+[2nd link for label1](https://example.com/but_domains_can_repeat)<br>
+Labels can have spaces:<br>
+<br>
+<br>
+[link for Labels can have spaces](https://example.com/blank_lines_are_ignored)<br>
+Labels with no links are ignored:<br>
+</blockquote>
+
+<h4>constraints</h4>
+<ul>
+  <li> 1000 links+labels per room </li>
+  <li> 150 characters per link description </li>
+  <li> 100 characters per label </li>
+  <li> 300 characters per room title </li>
+  <li> 100 characters per floor name </li>
+  <li> floor names are ascii only, no spaces </li>
+</ul>
+
+
+
+{% endblock %}
+#+end_src
+
+
+** Error page
+
+#+begin_src html :tangle templates/not_found.html
+{% extends "base.html" %}
+{% block title %} not found {% endblock %}
+{% block content%}
+<h1>Error</h1>
+{{ msg }} not found
+{% endblock %}
+#+end_src

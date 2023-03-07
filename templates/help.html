@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}linktower{% endblock %}
+{% block content %}
+<h1>help</h1>
+
+<h4>example</h4>
+<blockquote>
+[unlabeled link](https://example.com/)<br>
+Label1:<br>
+[link for label1](https://example.com/links_must_be_unique)<br>
+[2nd link for label1](https://example.com/but_domains_can_repeat)<br>
+Labels can have spaces:<br>
+<br>
+<br>
+[link for Labels can have spaces](https://example.com/blank_lines_are_ignored)<br>
+Labels with no links are ignored:<br>
+</blockquote>
+
+<h4>constraints</h4>
+<ul>
+  <li> 1000 links+labels per room </li>
+  <li> 150 characters per link description </li>
+  <li> 100 characters per label </li>
+  <li> 300 characters per room title </li>
+  <li> 100 characters per floor name </li>
+  <li> floor names are ascii only, no spaces </li>
+</ul>
+
+
+
+{% endblock %}

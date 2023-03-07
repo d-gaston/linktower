@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %} Discover {% endblock %}
+{% block content %}
+<h1> discover </h1>
+<form method="POST" id="discoverform">
+  <br>
+  containing the domain: <input type="text" name="domain" value="">
+  <input type="submit" value="discover!">
+</form>
+<br>
+(the <strong>domain</strong> is the part of the url displayed in parenthesis after each link)
+<br><br>
+<strong>floors</strong>
+<blockquote>
+  {% for floor in floors %}
+    <a href="/floor/{{ floor }}">{{ floor }}</a><br>
+  {% endfor %}
+</blockquote>
+<strong>rooms</strong>
+<blockquote>
+  {% for room in rooms %}
+    <a href="/room/{{ room['slug'] }}">{{ room['title'] }}</a><br>
+  {% endfor %}
+</blockquote>
+
+<strong>links</strong>
+<blockquote>
+  {% for link in links %}
+    <a href="{{ link['url'] }}">{{ link['description'] }}</a> ({{ link['domainName'] }}) <br>
+  {% endfor %}
+</blockquote>
+
+
+{% endblock %}

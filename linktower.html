@@ -1,0 +1,1786 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2023-01-24 Tue 15:53 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>linktower source code</title>
+<meta name="author" content="dg" />
+<meta name="generator" content="Org Mode" />
+<style>
+  #content { max-width: 60em; margin: auto; }
+  .title  { text-align: center;
+             margin-bottom: .2em; }
+  .subtitle { text-align: center;
+              font-size: medium;
+              font-weight: bold;
+              margin-top:0; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { font-family: monospace; color: green; }
+  .priority { font-family: monospace; color: orange; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .org-right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .org-left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .org-center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #e6e6e6;
+    border-radius: 3px;
+    background-color: #f2f2f2;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: auto;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    top: -8px;
+    right: 12px;
+    padding: 3px;
+    color: #555;
+    background-color: #f2f2f299;
+  }
+  pre.src:hover:before { display: inline; margin-top: 14px;}
+  /* Languages per Org manual */
+  pre.src-asymptote:before { content: 'Asymptote'; }
+  pre.src-awk:before { content: 'Awk'; }
+  pre.src-authinfo::before { content: 'Authinfo'; }
+  pre.src-C:before { content: 'C'; }
+  /* pre.src-C++ doesn't work in CSS */
+  pre.src-clojure:before { content: 'Clojure'; }
+  pre.src-css:before { content: 'CSS'; }
+  pre.src-D:before { content: 'D'; }
+  pre.src-ditaa:before { content: 'ditaa'; }
+  pre.src-dot:before { content: 'Graphviz'; }
+  pre.src-calc:before { content: 'Emacs Calc'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-fortran:before { content: 'Fortran'; }
+  pre.src-gnuplot:before { content: 'gnuplot'; }
+  pre.src-haskell:before { content: 'Haskell'; }
+  pre.src-hledger:before { content: 'hledger'; }
+  pre.src-java:before { content: 'Java'; }
+  pre.src-js:before { content: 'Javascript'; }
+  pre.src-latex:before { content: 'LaTeX'; }
+  pre.src-ledger:before { content: 'Ledger'; }
+  pre.src-lisp:before { content: 'Lisp'; }
+  pre.src-lilypond:before { content: 'Lilypond'; }
+  pre.src-lua:before { content: 'Lua'; }
+  pre.src-matlab:before { content: 'MATLAB'; }
+  pre.src-mscgen:before { content: 'Mscgen'; }
+  pre.src-ocaml:before { content: 'Objective Caml'; }
+  pre.src-octave:before { content: 'Octave'; }
+  pre.src-org:before { content: 'Org mode'; }
+  pre.src-oz:before { content: 'OZ'; }
+  pre.src-plantuml:before { content: 'Plantuml'; }
+  pre.src-processing:before { content: 'Processing.js'; }
+  pre.src-python:before { content: 'Python'; }
+  pre.src-R:before { content: 'R'; }
+  pre.src-ruby:before { content: 'Ruby'; }
+  pre.src-sass:before { content: 'Sass'; }
+  pre.src-scheme:before { content: 'Scheme'; }
+  pre.src-screen:before { content: 'Gnu Screen'; }
+  pre.src-sed:before { content: 'Sed'; }
+  pre.src-sh:before { content: 'shell'; }
+  pre.src-sql:before { content: 'SQL'; }
+  pre.src-sqlite:before { content: 'SQLite'; }
+  /* additional languages in org.el's org-babel-load-languages alist */
+  pre.src-forth:before { content: 'Forth'; }
+  pre.src-io:before { content: 'IO'; }
+  pre.src-J:before { content: 'J'; }
+  pre.src-makefile:before { content: 'Makefile'; }
+  pre.src-maxima:before { content: 'Maxima'; }
+  pre.src-perl:before { content: 'Perl'; }
+  pre.src-picolisp:before { content: 'Pico Lisp'; }
+  pre.src-scala:before { content: 'Scala'; }
+  pre.src-shell:before { content: 'Shell Script'; }
+  pre.src-ebnf2ps:before { content: 'ebfn2ps'; }
+  /* additional language identifiers per "defun org-babel-execute"
+       in ob-*.el */
+  pre.src-cpp:before  { content: 'C++'; }
+  pre.src-abc:before  { content: 'ABC'; }
+  pre.src-coq:before  { content: 'Coq'; }
+  pre.src-groovy:before  { content: 'Groovy'; }
+  /* additional language identifiers from org-babel-shell-names in
+     ob-shell.el: ob-shell is the only babel language using a lambda to put
+     the execution function name together. */
+  pre.src-bash:before  { content: 'bash'; }
+  pre.src-csh:before  { content: 'csh'; }
+  pre.src-ash:before  { content: 'ash'; }
+  pre.src-dash:before  { content: 'dash'; }
+  pre.src-ksh:before  { content: 'ksh'; }
+  pre.src-mksh:before  { content: 'mksh'; }
+  pre.src-posh:before  { content: 'posh'; }
+  /* Additional Emacs modes also supported by the LaTeX listings package */
+  pre.src-ada:before { content: 'Ada'; }
+  pre.src-asm:before { content: 'Assembler'; }
+  pre.src-caml:before { content: 'Caml'; }
+  pre.src-delphi:before { content: 'Delphi'; }
+  pre.src-html:before { content: 'HTML'; }
+  pre.src-idl:before { content: 'IDL'; }
+  pre.src-mercury:before { content: 'Mercury'; }
+  pre.src-metapost:before { content: 'MetaPost'; }
+  pre.src-modula-2:before { content: 'Modula-2'; }
+  pre.src-pascal:before { content: 'Pascal'; }
+  pre.src-ps:before { content: 'PostScript'; }
+  pre.src-prolog:before { content: 'Prolog'; }
+  pre.src-simula:before { content: 'Simula'; }
+  pre.src-tcl:before { content: 'tcl'; }
+  pre.src-tex:before { content: 'TeX'; }
+  pre.src-plain-tex:before { content: 'Plain TeX'; }
+  pre.src-verilog:before { content: 'Verilog'; }
+  pre.src-vhdl:before { content: 'VHDL'; }
+  pre.src-xml:before { content: 'XML'; }
+  pre.src-nxml:before { content: 'XML'; }
+  /* add a generic configuration mode; LaTeX export needs an additional
+     (add-to-list 'org-latex-listings-langs '(conf " ")) in .emacs */
+  pre.src-conf:before { content: 'Configuration File'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.org-right  { text-align: center;  }
+  th.org-left   { text-align: center;   }
+  th.org-center { text-align: center; }
+  td.org-right  { text-align: right;  }
+  td.org-left   { text-align: left;   }
+  td.org-center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara { display: inline; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .equation-container {
+    display: table;
+    text-align: center;
+    width: 100%;
+  }
+  .equation {
+    vertical-align: middle;
+  }
+  .equation-label {
+    display: table-cell;
+    text-align: right;
+    vertical-align: middle;
+  }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  .org-svg { }
+</style>
+</head>
+<body>
+<div id="content" class="content">
+<h1 class="title">linktower source code</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#orga93b92a">1. Introduction</a>
+<ul>
+<li><a href="#org3bbb624">1.1. Overview</a></li>
+<li><a href="#org9c1cd31">1.2. Nomenclature</a></li>
+</ul>
+</li>
+<li><a href="#org594752d">2. Imports</a></li>
+<li><a href="#orgd2c337f">3. The Database and Methods to Interact with it</a>
+<ul>
+<li><a href="#org5f68dff">3.1. Schema</a></li>
+<li><a href="#orgaeece57">3.2. Connecting to and Querying the Database From Python</a>
+<ul>
+<li><a href="#org2de03a4">3.2.1. open_db</a></li>
+<li><a href="#org62c6574">3.2.2. query_db</a></li>
+<li><a href="#org8e8b42d">3.2.3. close_connection</a></li>
+</ul>
+</li>
+<li><a href="#orgf129b52">3.3. Methods that Query the Database</a>
+<ul>
+<li><a href="#orge8f4dc4">3.3.1. Insert Room</a></li>
+<li><a href="#org210addd">3.3.2. Update Room</a></li>
+<li><a href="#orgd58ee1e">3.3.3. Delete Room</a></li>
+<li><a href="#org19d8e5b">3.3.4. Generating Room URL Slugs</a></li>
+<li><a href="#orgf914589">3.3.5. Verify Floor Names</a></li>
+<li><a href="#org2001b26">3.3.6. Getters</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#org97c44fb">4. Routes</a>
+<ul>
+<li><a href="#orgafcacdb">4.1. Static Pages</a>
+<ul>
+<li><a href="#org8cebd44">4.1.1. Home</a></li>
+<li><a href="#org039bc27">4.1.2. Help</a></li>
+<li><a href="#orga61e347">4.1.3. Source code</a></li>
+</ul>
+</li>
+<li><a href="#org9698535">4.2. New Room Form (GET)</a></li>
+<li><a href="#org364a02b">4.3. New Room Form (POST)</a></li>
+<li><a href="#org48ff057">4.4. View Room</a></li>
+<li><a href="#orgea7aaef">4.5. Edit Room Form (GET)</a></li>
+<li><a href="#orgc20d917">4.6. Edit Room Form (POST)</a>
+<ul>
+<li><a href="#org0714450">4.6.1. Diffing Links</a></li>
+</ul>
+</li>
+<li><a href="#orgd5e160d">4.7. Delete Room (GET)</a></li>
+<li><a href="#org086ef9f">4.8. Delete Room (POST)</a></li>
+<li><a href="#org5c1eb3c">4.9. Show All Rooms on Floor</a></li>
+<li><a href="#org8a5bbe2">4.10. Discover (GET)</a></li>
+<li><a href="#org90b541e">4.11. Discover (POST)</a></li>
+</ul>
+</li>
+<li><a href="#orgf71fd86">5. Helper Methods</a>
+<ul>
+<li><a href="#org7db789f">5.1. Parsing the Links Form</a></li>
+<li><a href="#org75ff060">5.2. Associated Each Label to its Links</a></li>
+<li><a href="#org5ef15a8">5.3. Check Form Validity</a></li>
+</ul>
+</li>
+<li><a href="#orgbcd0757">6. Views</a>
+<ul>
+<li><a href="#org0aff726">6.1. Base Template</a></li>
+<li><a href="#orgd4a6dca">6.2. Form Template</a>
+<ul>
+<li><a href="#org19dcfcc">6.2.1. New Form</a></li>
+<li><a href="#orge7dbaba">6.2.2. Edit Form</a></li>
+</ul>
+</li>
+<li><a href="#org1bddb25">6.3. Room Template</a></li>
+<li><a href="#orgb103cc1">6.4. Delete Room</a></li>
+<li><a href="#orgddad503">6.5. Floor Template</a></li>
+<li><a href="#orge841e12">6.6. Discover</a></li>
+<li><a href="#org2a851a7">6.7. Homepage</a></li>
+<li><a href="#orgb69c88d">6.8. Help</a></li>
+<li><a href="#orga757ef7">6.9. Error page</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+
+<div id="outline-container-orga93b92a" class="outline-2">
+<h2 id="orga93b92a"><span class="section-number-2">1.</span> Introduction</h2>
+<div class="outline-text-2" id="text-1">
+<p>
+This document describes linktower, a web application for storing and
+organzing links. The description is both natural language and
+executable code; in other words, a <i>literate program</i>. linktower is
+like a pastebin site, but unlike
+most pastebin sites, it provides functionality for exploring
+what other users have posted.
+</p>
+</div>
+
+<div id="outline-container-org3bbb624" class="outline-3">
+<h3 id="org3bbb624"><span class="section-number-3">1.1.</span> Overview</h3>
+<div class="outline-text-3" id="text-1-1">
+<p>
+The site is implemented as a simple Flask application with no
+dependencies except for what come with Flask. Since I'm more
+interested in functionality than appearance at the moment, the
+frontend is plain, unstyled html. The backend uses sqlite as the
+database and directly queries it with plain sql. I deliberately chose
+to forgo an ORM mostly to better familiarize myself with sql.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org9c1cd31" class="outline-3">
+<h3 id="org9c1cd31"><span class="section-number-3">1.2.</span> Nomenclature</h3>
+<div class="outline-text-3" id="text-1-2">
+<p>
+To stick with one conceptual theme, I use the following terms:
+</p>
+<ul class="org-ul">
+<li><b>room:</b> a collection of links and labels</li>
+<li><b>floor:</b> a collection of rooms</li>
+<li><b>door:</b> a link from a room to another room or floor (i.e. an internal link)</li>
+</ul>
+</div>
+</div>
+</div>
+
+
+
+
+<div id="outline-container-org594752d" class="outline-2">
+<h2 id="org594752d"><span class="section-number-2">2.</span> Imports</h2>
+<div class="outline-text-2" id="text-2">
+<div class="org-src-container">
+<pre class="src src-python">from flask import Flask, render_template, request, g, redirect, url_for, send_from_directory
+from werkzeug.security import generate_password_hash, check_password_hash
+import sqlite3
+import random
+import string
+from urllib.parse import urlparse
+app = Flask(__name__)  
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgd2c337f" class="outline-2">
+<h2 id="orgd2c337f"><span class="section-number-2">3.</span> The Database and Methods to Interact with it</h2>
+<div class="outline-text-2" id="text-3">
+</div>
+<div id="outline-container-org5f68dff" class="outline-3">
+<h3 id="org5f68dff"><span class="section-number-3">3.1.</span> Schema</h3>
+<div class="outline-text-3" id="text-3-1">
+<p>
+The central concept in this application <i>Room</i>. A room is a
+collection of links that has a title, creator, and password. In order
+to edit or delete a room, the creator and  password must be
+provided. A new password can be set when editing a room. Additionally,
+a randomly generated url slug where the room can be found is store
+(i.e. room/&lt;creator/&lt;slug&gt;). Rooms have links and domains, which are
+described below.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sql">DROP TABLE IF EXISTS Rooms;
+CREATE TABLE Rooms (
+    id INTEGER PRIMARY KEY autoincrement,
+    title TEXT NOT NULL,
+    floor_name TEXT NOT NULL,
+    slug TEXT NOT NULL,
+    password_hash TEXT NOT NULL
+);
+
+</pre>
+</div>
+
+
+<p>
+The url of a link <b>MUST</b> start with <a href="https://">https://</a> or <a href="http://">http://</a>. Although I could split the description into its own table (since the
+same link can have more than one description), I figured that the
+overlap of links between rooms would be small, so some redundancy is
+allowed in order to simplify the schema somewhat. Each link can also
+have zero or one labels (no label will be the empty string ''), which
+allows users to organize their room somewhat. Rooms and Links have a
+one-to-man relationship (one room has multiple links, each link
+belongs to one room. The domain name is stored in addition to the url
+in order to simplify finding rooms by what domains they list (e.g.,
+find all rooms that have a link to example.com)
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sql">DROP TABLE IF EXISTS Links;
+CREATE TABLE Links (
+    id INTEGER PRIMARY KEY autoincrement,
+    url TEXT NOT NULL,
+    domainName TEXT NOT NULL,
+    description TEXT NOT NULL,
+    label TEXT NOT NULL,
+    room_id INTEGER NOT NULL,
+    FOREIGN KEY (room_id) REFERENCES Rooms(id)
+);
+</pre>
+</div>
+
+
+<p>
+In order to initialize the database, the command <code>sqlite filename.db &lt;
+schema.sql</code> is run on the command line.
+</p>
+</div>
+</div>
+
+
+<div id="outline-container-orgaeece57" class="outline-3">
+<h3 id="orgaeece57"><span class="section-number-3">3.2.</span> Connecting to and Querying the Database From Python</h3>
+<div class="outline-text-3" id="text-3-2">
+<p>
+This task is thoroughly covered in <a href="https://flask.palletsprojects.com/en/2.2.x/patterns/sqlite3/">the Flask documentation.</a>
+</p>
+</div>
+
+<div id="outline-container-org2de03a4" class="outline-4">
+<h4 id="org2de03a4"><span class="section-number-4">3.2.1.</span> open_db</h4>
+<div class="outline-text-4" id="text-3-2-1">
+<p>
+The <code>open_db</code> function is a helper for <code>query_db</code> below. The line <code>db.row_factory = sqlite3.Row</code> lets us read the row into a
+python dictionary instead of a plain tuple, which allows access to the
+data based on column names rather than numeric indices. According to
+<a href="https://docs.python.org/3/library/sqlite3.html#sqlite3-howto-row-factory">the python sqlite documentation</a> there is little overhead for
+this. The database connection itself is stored in Flask's global
+variable <code>g</code>. Among other things, this means we don't have to open a
+new connectione every time we query the database.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">def open_db():
+    db = getattr(g, '_database', None)
+    if db is None:
+        db = g._database = sqlite3.connect("test.db")
+        db.row_factory = sqlite3.Row
+    return db
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org62c6574" class="outline-4">
+<h4 id="org62c6574"><span class="section-number-4">3.2.2.</span> query_db</h4>
+<div class="outline-text-4" id="text-3-2-2">
+<p>
+A list of dicts is returned from execution, which can be iterated over by the
+caller. <b>Additionally, the id of the last inserted row is returned</b>
+(<code>results,_ = ...</code> is used when the id is not needed). This saves having to
+immediately query the database for the thing we just inserted.
+</p>
+<div class="org-src-container">
+<pre class="src src-python">
+def query_db(query, args=()):
+    '''
+    Returns a list of dicts of column name to value
+    '''
+    db = open_db()
+    cur = db.cursor()
+    # Turn on foreign key support as per https://sqlite.org/foreignkeys.html
+    cur.execute("PRAGMA foreign_keys=ON")
+    cur.execute(query, args)
+    id = cur.lastrowid
+    rv = cur.fetchall()
+    cur.close()
+    return rv,id
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org8e8b42d" class="outline-4">
+<h4 id="org8e8b42d"><span class="section-number-4">3.2.3.</span> close_connection</h4>
+<div class="outline-text-4" id="text-3-2-3">
+<p>
+The database connection is after Flask finishes the request. At this
+point changes to the database are
+committed 
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">@app.teardown_appcontext
+def close_connection(exception):
+    db = getattr(g, '_database', None)
+    if db is not None:
+        db.commit()
+        db.close()
+        
+</pre>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgf129b52" class="outline-3">
+<h3 id="orgf129b52"><span class="section-number-3">3.3.</span> Methods that Query the Database</h3>
+<div class="outline-text-3" id="text-3-3">
+</div>
+<div id="outline-container-orge8f4dc4" class="outline-4">
+<h4 id="orge8f4dc4"><span class="section-number-4">3.3.1.</span> Insert Room</h4>
+<div class="outline-text-4" id="text-3-3-1">
+<p>
+The room is created first and the resulting room<sub>id</sub> is used when
+creating the link entries
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python" id="org779333c">def insert_room_in_db(roomTitle, roomFloor_Name, roomPassword, labelToLinks, slug):
+    password_hash =generate_password_hash(roomPassword)
+    insertRoomQuery = '''
+    INSERT INTO Rooms(title, floor_name, slug, password_hash)
+    VALUES (:title, :floor_name, :slug, :password_hash);
+    '''
+    
+    _, room_id = query_db(insertRoomQuery,
+                     {"title":roomTitle, "floor_name":roomFloor_Name,
+                      "slug":slug, "password_hash": password_hash})    
+
+    insertLinkQuery = '''
+    INSERT INTO Links (url, domainName, description, label, room_id)
+    VALUES (:url, :domainName, :description, :label, :room_id);
+    '''
+    for label, links in labelToLinks.items():
+        for link in links:
+            domainName = urlparse(link['url']).netloc
+            query_db(insertLinkQuery,
+                     {'url':link['url'], 'domainName':domainName, 'description':link['description'],
+                      'label':label,'room_id':room_id})
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org210addd" class="outline-4">
+<h4 id="org210addd"><span class="section-number-4">3.3.2.</span> Update Room</h4>
+<div class="outline-text-4" id="text-3-3-2">
+<p>
+The record in the Rooms table is updated if there is a change in one
+of the fields, otherwise it is unmodified.
+</p>
+
+<p>
+Links whose label, description, or url are changed are deleted, and
+the updated version is inserted. 
+</p>
+<div class="org-src-container">
+<pre class="src src-python">def update_room_in_db(changedRoomInfo, addedLinks, removedLinks, roomId):
+
+    updateTitleQuery = '''
+    UPDATE Rooms
+    SET title = :value
+    WHERE id = :room_id
+    '''
+    updateFloorNameQuery = '''
+    UPDATE Rooms
+    SET floor_name  = :value
+    WHERE id = :room_id
+    '''
+    updatePasswordQuery = '''
+    UPDATE Rooms
+    SET password_hash = :value
+    WHERE id = :room_id
+    '''
+    if 'title' in changedRoomInfo:
+        query_db(updateTitleQuery, {'value':changedRoomInfo['title'], 'room_id':roomId})
+    if 'floor_name' in changedRoomInfo:
+        query_db(updateFloorNameQuery, {'value':changedRoomInfo['floor_name'], 'room_id':roomId})
+    if 'password' in changedRoomInfo:
+        query_db(updatePasswordQuery,{'value':generate_password_hash(changedRoomInfo['password']),'room_id':roomId})
+       
+
+    deleteLinkQuery = '''
+    DELETE FROM Links
+    WHERE url = :url
+    AND room_id = :room_id;
+    
+    '''
+    for link in removedLinks:
+        query_db(deleteLinkQuery, {'url':link['url'], 'room_id':roomId})
+
+        
+    insertLinkQuery = '''
+    INSERT INTO Links (url, domainName, description, label, room_id)
+    VALUES (:url, :domainName, :description, :label, :room_id);
+    '''
+    for link in addedLinks:
+        #insert links
+        domainName = urlparse(link['url']).netloc
+        query_db(insertLinkQuery,
+                     {'url':link['url'], 'domainName':domainName, 'description':link['description'],
+                      'label':link['label'],'room_id':roomId})    
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgd58ee1e" class="outline-4">
+<h4 id="orgd58ee1e"><span class="section-number-4">3.3.3.</span> Delete Room</h4>
+<div class="outline-text-4" id="text-3-3-3">
+<div class="org-src-container">
+<pre class="src src-python">def delete_room(room_id):
+    deleteLinksQuery = '''
+    DELETE FROM Links
+    WHERE room_id = :room_id;
+    '''
+    query_db(deleteLinksQuery, {'room_id':room_id})
+
+    deleteRoomQuery = '''
+    DELETE FROM Rooms
+    WHERE id = :room_id;
+    '''
+    query_db(deleteRoomQuery, {'room_id':room_id})
+
+
+    
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org19d8e5b" class="outline-4">
+<h4 id="org19d8e5b"><span class="section-number-4">3.3.4.</span> Generating Room URL Slugs</h4>
+<div class="outline-text-4" id="text-3-3-4">
+<p>
+A room slug is 8 random lowercase letters, which works out to
+208,827,064,576 unique options. Although collision is practically
+impossible at this scale, I'm going to check anyway.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">def create_room_slug():
+    getSlugsQuery = '''
+    SELECT slug FROM Rooms;
+    '''
+    results,_ = query_db(getSlugsQuery)
+    slugs = [result['slug'] for result in results]
+    print(slugs)
+    newSlug = ''.join(random.choice(string.ascii_lowercase) for i in range(8))
+    if newSlug in slugs:
+        #Should basically never get here!
+        while newSlug in slugs:
+            newSlug = ''.join(random.choice(string.ascii_lowercase) for i in range(8))
+    return newSlug
+    
+    
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgf914589" class="outline-4">
+<h4 id="orgf914589"><span class="section-number-4">3.3.5.</span> Verify Floor Names</h4>
+<div class="outline-text-4" id="text-3-3-5">
+<ul class="org-ul">
+<li>If floor_name doesn't already exist return true (user is
+allowed to create the floor)</li>
+<li>If floor_name exists, check password
+<ul class="org-ul">
+<li>if password is right, return true</li>
+<li>if password is wrong, return false</li>
+</ul></li>
+</ul>
+<div class="org-src-container">
+<pre class="src src-python" id="orgfdb0574">def verify_floor_name(floor_name, password):
+    getGroupIdQuery = '''
+    SELECT * FROM Rooms
+    WHERE floor_name = :floor_name;
+    '''
+    results,_ = query_db(getGroupIdQuery, {'floor_name':floor_name})
+    if not results:
+        return True
+    password_hash = results[0]['password_hash']
+    return check_password_hash(password_hash, password)
+</pre>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-org2001b26" class="outline-4">
+<h4 id="org2001b26"><span class="section-number-4">3.3.6.</span> Getters</h4>
+<div class="outline-text-4" id="text-3-3-6">
+<p>
+Methods that fetch an entity or group of entites based on a given criterion
+</p>
+
+
+<p>
+Since slugs are unique, query_db will return a list of exactly
+one room, which is returned.
+</p>
+<div class="org-src-container">
+<pre class="src src-python">def get_room_by_slug(slug):
+    getRoomQuery = '''
+    SELECT * FROM Rooms
+    WHERE slug = :slug;
+    '''
+    rooms,_ = query_db(getRoomQuery, {"slug":slug})
+    if not rooms:
+        return {}
+    #assert len(rooms) == 1
+    return rooms[0]
+
+</pre>
+</div>
+
+
+<div class="org-src-container">
+<pre class="src src-python" id="orga9d7728">def get_links_for_room(roomId):
+    getLinksQuery = '''
+    SELECT * FROM Links
+    WHERE room_id = :roomId;
+    '''
+    links,_ = query_db(getLinksQuery, {"roomId":roomId})
+    return links
+</pre>
+</div>
+
+
+<div class="org-src-container">
+<pre class="src src-python">def get_rooms_by_floor_name(floor_name):
+    getRoomsQuery = '''
+    SELECT * FROM Rooms
+    WHERE floor_name = :floor_name
+    '''
+    return query_db(getRoomsQuery, {'floor_name':floor_name})[0]
+</pre>
+</div>
+
+
+<p>
+The following two methods return a random number of records from the
+Rooms table, possibly restricted to those having links to a specified
+domain. In order to apply this restriction, a subquery to the Links
+table is used.
+</p>
+
+<p>
+Returns a list of floor_name strings
+</p>
+<div class="org-src-container">
+<pre class="src src-python">def get_random_floors(num, domain):
+    if domain:
+        getFloorsQuery = '''
+        SELECT DISTINCT floor_name FROM Rooms
+        WHERE id IN
+        (SELECT room_id FROM Links WHERE domainName = :domain)
+        ORDER BY RANDOM()
+        LIMIT :num
+        '''
+        floors,_ = query_db(getFloorsQuery, {'num':num, 'domain':domain})
+        return [floor['floor_name'] for floor in floors]
+    else:
+        getFloorsQuery = '''
+        SELECT DISTINCT floor_name FROM Rooms
+        ORDER BY RANDOM()
+        LIMIT :num
+        '''
+        floors,_ = query_db(getFloorsQuery, {'num':num})
+        return [floor['floor_name'] for floor in floors]
+    
+</pre>
+</div>
+
+
+
+<div class="org-src-container">
+<pre class="src src-python">def get_random_rooms(num, domain):
+    if domain:
+        getRoomsQuery = '''
+        SELECT * FROM Rooms
+        WHERE id IN
+        (SELECT room_id FROM Links WHERE domainName = :domain)
+        ORDER BY RANDOM()
+        LIMIT :num
+        '''
+        rooms,_ = query_db(getRoomsQuery, {'num':num, 'domain':domain})
+        return rooms
+    else:
+        getRoomsQuery = '''
+        SELECT * FROM Rooms
+        ORDER BY RANDOM()
+        LIMIT :num
+        '''
+        rooms,_ = query_db(getRoomsQuery, {'num':num})
+        return rooms
+</pre>
+</div>
+
+<p>
+Returns a list of room records
+</p>
+<div class="org-src-container">
+<pre class="src src-python">def get_random_links(num, domain):
+    if domain:
+        getLinksQuery = '''
+        SELECT * FROM Links
+        WHERE domainName = :domain
+        ORDER BY RANDOM()
+        LIMIT :num;
+        '''
+        links,_ = query_db(getLinksQuery, {'domain':domain, 'num':num})
+        return links
+    else:
+        getLinksQuery = '''
+        SELECT * FROM Links
+        ORDER BY RANDOM()
+        LIMIT :num;
+        '''
+        links,_ = query_db(getLinksQuery, {'num':num})
+        return links
+        
+    
+</pre>
+</div>
+
+<p>
+Doors are basically just internal backlinks. If room A links to room
+B, then room B will display that it has a door to room A. For local
+execution, the localhost IP address is used for the urls
+</p>
+<div class="org-src-container">
+<pre class="src src-python">def get_doors_for_room(slug):
+    getLinksQuery = '''
+    SELECT * FROM Links
+    WHERE url = :url;
+    '''
+    url = 'http://127.0.0.1:5000/room/{}'.format(slug)
+    links,_ = query_db(getLinksQuery, {'url':url})
+    room_ids = [link['room_id'] for link in links]
+
+    getRoomQuery = '''
+    SELECT * FROM Rooms
+    WHERE id = :id;
+    '''
+    doors = []
+    for id in room_ids:
+        rooms,_ = query_db(getRoomQuery, {'id':id})
+        if not rooms:
+            pass
+        else:
+            #assert len(rooms) == 1
+            if rooms[0]['slug'] != slug:
+                doors.append(rooms[0])
+    return doors
+        
+    
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org97c44fb" class="outline-2">
+<h2 id="org97c44fb"><span class="section-number-2">4.</span> Routes</h2>
+<div class="outline-text-2" id="text-4">
+</div>
+<div id="outline-container-orgafcacdb" class="outline-3">
+<h3 id="orgafcacdb"><span class="section-number-3">4.1.</span> Static Pages</h3>
+<div class="outline-text-3" id="text-4-1">
+</div>
+<div id="outline-container-org8cebd44" class="outline-4">
+<h4 id="org8cebd44"><span class="section-number-4">4.1.1.</span> Home</h4>
+<div class="outline-text-4" id="text-4-1-1">
+<div class="org-src-container">
+<pre class="src src-python">@app.route('/', methods=['GET'])
+def home():
+    return render_template('index.html')
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org039bc27" class="outline-4">
+<h4 id="org039bc27"><span class="section-number-4">4.1.2.</span> Help</h4>
+<div class="outline-text-4" id="text-4-1-2">
+<div class="org-src-container">
+<pre class="src src-python">@app.route('/help', methods=['GET'])
+def help():
+    return render_template('help.html')
+</pre>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-orga61e347" class="outline-4">
+<h4 id="orga61e347"><span class="section-number-4">4.1.3.</span> Source code</h4>
+<div class="outline-text-4" id="text-4-1-3">
+<p>
+Returns this document, which is generated from the org file.
+</p>
+<div class="org-src-container">
+<pre class="src src-python">@app.route('/source', methods=['GET'])
+def source():
+    return send_from_directory('','linktower.html')
+</pre>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org9698535" class="outline-3">
+<h3 id="org9698535"><span class="section-number-3">4.2.</span> New Room Form (GET)</h3>
+<div class="outline-text-3" id="text-4-2">
+<p>
+A blank form for entering the necessary information is served to the user.
+</p>
+
+
+<div class="org-src-container">
+<pre class="src src-python">@app.route('/new', methods=['GET'])
+def get_new_form():
+    return render_template("new.html", title='', links='', floor_name='', password='', errors=[])
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org364a02b" class="outline-3">
+<h3 id="org364a02b"><span class="section-number-3">4.3.</span> New Room Form (POST)</h3>
+<div class="outline-text-3" id="text-4-3">
+<p>
+Next we set up a route for a <code>POST</code> request to the <code>/room/new</code> url for
+the user to submit the form. If there are any errors in the
+submission, the forms are repopulated with the user's input and the
+errors are displayed to the user.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">
+@app.route('/new', methods=['POST'])
+def post_new_form():
+    errors = check_form_validity(request)
+    form = request.form
+    roomSlug = create_room_slug()
+    links, badLinks = parse_links_form(request.form['links'])
+    labelToLinks = associate_label_to_links(links)
+    if badLinks or  errors:
+        return render_template("new.html", title=form['title'], links=form['links'],
+                               floor_name=form['floor_name'], password=form['password'], errors=badLinks+errors)
+    insert_room_in_db(form['title'], form['floor_name'], form['password'], labelToLinks, roomSlug)
+    return redirect(url_for('view_room', slug=roomSlug)) 
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org48ff057" class="outline-3">
+<h3 id="org48ff057"><span class="section-number-3">4.4.</span> View Room</h3>
+<div class="outline-text-3" id="text-4-4">
+<p>
+Gets all links for a given room.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">
+@app.route('/room/&lt;slug&gt;', methods=['GET'])
+def view_room(slug):
+    room = get_room_by_slug(slug)
+    if not room:
+        return render_template("not_found.html", msg='room at {}'.format(slug))
+    links = get_links_for_room(room['id'])
+    labelToLinks = associate_label_to_links(links)
+    doors = get_doors_for_room(slug)
+    return render_template("room.html", room=room, labelToLinks=labelToLinks, doors=doors)
+</pre>
+</div>
+</div>
+</div>
+
+
+
+
+<div id="outline-container-orgea7aaef" class="outline-3">
+<h3 id="orgea7aaef"><span class="section-number-3">4.5.</span> Edit Room Form (GET)</h3>
+<div class="outline-text-3" id="text-4-5">
+<p>
+The edit form is be popluated with the current contents of the
+room. If the room does not exist, an error page is returned. The links
+from the database are converted back to markdown form [description](url)
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">@app.route('/room/&lt;slug&gt;/edit', methods=['GET'])
+def get_edit_form(slug):
+    room = get_room_by_slug(slug)
+    if not room:
+        return render_template("not_found.html", msg='room at {}'.format(slug))
+    links = get_links_for_room(room['id'])
+    labelToLinks = associate_label_to_links(links)
+    linksform = []
+    for label, linkslist in labelToLinks.items():
+        linksform.append(label)
+        for link in linkslist:
+            linksform.append("[{}]({})".format(link['description'], link['url']))
+        linksform.append('\n')
+    return render_template("edit.html", title=room['title'], links='\n'.join(linksform),
+                               floor_name=room['floor_name'], password='', errors=[])
+
+    
+    
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgc20d917" class="outline-3">
+<h3 id="orgc20d917"><span class="section-number-3">4.6.</span> Edit Room Form (POST)</h3>
+<div class="outline-text-3" id="text-4-6">
+<p>
+Posting the edit form requires many of the same steps as posting the
+new form, but after parsing the form contents must be diffed with the
+existing contents of the room, and the room (and associated links)
+selectively updated.
+</p>
+</div>
+
+<div id="outline-container-org0714450" class="outline-4">
+<h4 id="org0714450"><span class="section-number-4">4.6.1.</span> Diffing Links</h4>
+<div class="outline-text-4" id="text-4-6-1">
+<p>
+New links are parsed from the form, while the old links are fetched
+from the database. Each are converted into a set of tuples of <code>(url,
+label, description)</code> (dicts cannot be in a set), and the sets are
+subtracted from each other to find the sets of added links and removed
+links. Links are also considered "removed" if any field is
+changed. The updated versions will be in the new set. These are then
+converted from tuples to dicts to be inserted/deleted in the database.
+</p>
+
+
+<div class="org-src-container">
+<pre class="src src-python">@app.route('/room/&lt;slug&gt;/edit', methods=['POST'])
+def post_edit_form(slug):
+
+    #get room data
+    room = get_room_by_slug(slug)
+    if not room:
+        return render_template("not_found.html", msg='room at {}'.format(slug))
+
+    #get form data
+    errors = check_form_validity(request)
+    form = request.form
+    links, badLinks = parse_links_form(request.form['links'])
+    if badLinks or errors:
+        return render_template("edit.html", title=form['title'], links=form['links'],
+                               floor_name=form['floor_name'], password=form['password'], errors=badLinks+errors)
+    
+    #normalize links to common format (list of dicts)
+    newLinks = set([(link['url'], link['label'], link['description'])
+                    for link in links])
+    oldLinks = set([(link['url'], link['label'], link['description'])
+                    for link in get_links_for_room(room['id'])])
+    #diff links
+    addedLinks = [{'url':link[0], 'label':link[1], 'description':link[2]} for link in list(newLinks - oldLinks)]
+    removedLinks = [{'url':link[0], 'label':link[1], 'description':link[2]} for link in list(oldLinks - newLinks)]
+    
+    
+    changedRoomInfo = {}
+    if form['title'] != room['title']:
+        changedRoomInfo['title'] = form['title']
+    if form['floor_name'] != room['floor_name']:
+        changedRoomInfo['floor'] = form['floor']
+    if form['new_password']:
+        changedRoomInfo['password'] = form['new_password']
+        
+
+    
+    update_room_in_db(changedRoomInfo, addedLinks, removedLinks, room['id'])
+    return redirect(url_for('view_room', slug=slug)) 
+
+</pre>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgd5e160d" class="outline-3">
+<h3 id="orgd5e160d"><span class="section-number-3">4.7.</span> Delete Room (GET)</h3>
+<div class="outline-text-3" id="text-4-7">
+<div class="org-src-container">
+<pre class="src src-python">@app.route('/room/&lt;slug&gt;/delete', methods=['GET'])
+def get_delete_room_form(slug):
+    room = get_room_by_slug(slug)
+    if not room:
+        return render_template("not_found.html", msg='room at {}'.format(slug))
+    return render_template("delete.html", room=room, errors=[], success=False)
+</pre>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-org086ef9f" class="outline-3">
+<h3 id="org086ef9f"><span class="section-number-3">4.8.</span> Delete Room (POST)</h3>
+<div class="outline-text-3" id="text-4-8">
+<div class="org-src-container">
+<pre class="src src-python">@app.route('/room/&lt;slug&gt;/delete', methods=['POST'])
+def post_delete_room_form(slug):
+    room = get_room_by_slug(slug)
+    password = request.form['password']
+    if not room:
+        return render_template("not_found.html", msg='room at {}'.format(slug))
+    if not check_password_hash(room['password_hash'], password):
+        return render_template("delete.html", room=room, errors=['Incorrect password'], success=False)
+    delete_room(room['id'])
+    return render_template("delete.html", room=room, errors=[], success=True)
+</pre>
+</div>
+</div>
+</div>
+
+
+
+
+<div id="outline-container-org5c1eb3c" class="outline-3">
+<h3 id="org5c1eb3c"><span class="section-number-3">4.9.</span> Show All Rooms on Floor</h3>
+<div class="outline-text-3" id="text-4-9">
+<p>
+Gets a list of all rooms on a floor, returns an error page if the floor
+is not found.
+</p>
+<div class="org-src-container">
+<pre class="src src-python">@app.route('/floor/&lt;floor_name&gt;', methods=['GET'])
+def list_rooms_on_floor(floor_name):
+    rooms = get_rooms_by_floor_name(floor_name)
+    if not rooms:
+       return  render_template("not_found.html", msg='floor with name {}'.format(floor_name))
+    return render_template("floor_name.html", floor_name=floor_name, rooms=rooms)
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org8a5bbe2" class="outline-3">
+<h3 id="org8a5bbe2"><span class="section-number-3">4.10.</span> Discover (GET)</h3>
+<div class="outline-text-3" id="text-4-10">
+<p>
+Returns a random selection of 10 floors, rooms, and links.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">@app.route('/discover', methods=['GET'])
+def discover_get():
+    floors = get_random_floors(10, '')
+    rooms = get_random_rooms(10, '')
+    links = get_random_links(10, '')    
+    return render_template('discover.html', num=10, floors=floors, rooms=rooms, links=links)
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org90b541e" class="outline-3">
+<h3 id="org90b541e"><span class="section-number-3">4.11.</span> Discover (POST)</h3>
+<div class="outline-text-3" id="text-4-11">
+<p>
+Returns a random selection of at most 10 floors, rooms and links
+containing the given domain, or 10 random floors, rooms and links if
+no domain is given.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-python">@app.route('/discover', methods=['POST'])
+def discover_post():
+    form = request.form
+    floors = get_random_floors(10, form['domain'])
+    rooms = get_random_rooms(10, form['domain'])
+    links = get_random_links(10, form['domain'])
+    return render_template('discover.html', num=10, floors=floors, rooms=rooms, links=links)
+</pre>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgf71fd86" class="outline-2">
+<h2 id="orgf71fd86"><span class="section-number-2">5.</span> Helper Methods</h2>
+<div class="outline-text-2" id="text-5">
+</div>
+<div id="outline-container-org7db789f" class="outline-3">
+<h3 id="org7db789f"><span class="section-number-3">5.1.</span> Parsing the Links Form</h3>
+<div class="outline-text-3" id="text-5-1">
+<p>
+The links form is expected to contain links in markdown format
+[description](url) and labels that are lines ending in a colon. At least one link is mandatory, labels are
+optional. Each link and label must be on its own line. As a
+result, the link form will consist of markdown links potentially
+interspersed with labels. Thus, the links form can have the following structure:
+</p>
+
+<pre class="example" id="org53c94d4">
+[unlabeled link](url)
+Label1:
+[link for label1](url)
+[2nd link for label1](url)
+Labels can have spaces:
+[link for Labels can have spaces](url)
+Labels with no links are ignored:
+</pre>
+
+<p>
+The following method parses the link form into a list of dicts with
+the structure <code>{'description':, 'url':, 'label':}</code>, which mirrors the
+link representation in the database
+</p>
+
+<p>
+Malformed labels and links, as well as any other rejected input, is
+returned in a list
+</p>
+<div class="org-src-container">
+<pre class="src src-python" id="org0dbabe6">def parse_links_form(form):
+    links = []
+    currentLabel = ''
+    badInput = []
+    existingUrls = set()
+    for line in form.splitlines():
+        if line.endswith(':'):
+            currentLabel = line
+        elif len(set(line) - set(string.whitespace)) == 0:
+            pass
+        #parse the markdown link for its components 
+        elif line.startswith('[') and '](' in line and line.endswith(')'):
+            description = line[1:line.index('](')]
+            url = line[line.index('](')+2:-1]
+            parsedUrl = urlparse(url)
+            
+            #check if url is valid
+            if not all([parsedUrl.scheme, parsedUrl.netloc, parsedUrl.path]):
+                badInput.append(line + " Could not parse link. Try copying the link from your browser's search bar")
+            elif url in existingUrls:
+                badInput.append(line + " Duplicate urls are not accepted. Delete this line and resubmit the form")
+            else:
+                links.append({'description':description, 'url':url, 'label':currentLabel})
+                existingUrls.add(url)
+            
+        else:
+            badInput.append(line + " This line is not recognized as a link or label")
+
+    return (links, badInput)        
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org75ff060" class="outline-3">
+<h3 id="org75ff060"><span class="section-number-3">5.2.</span> Associated Each Label to its Links</h3>
+<div class="outline-text-3" id="text-5-2">
+<p>
+Returns a <b>sorted</b> map of each label to a list of links. Unlabeled
+links are associated to the empty string. Sorting is done so that the
+unlabeled links appear first on the room page.
+</p>
+<div class="org-src-container">
+<pre class="src src-python">def associate_label_to_links(links):
+    labelToLinks = {}
+    for link in links:
+        label = link['label']
+        labelToLinks.setdefault(label, []).append(link)
+    return {i[0]:i[1] for i in sorted(labelToLinks.items())} 
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org5ef15a8" class="outline-3">
+<h3 id="org5ef15a8"><span class="section-number-3">5.3.</span> Check Form Validity</h3>
+<div class="outline-text-3" id="text-5-3">
+<p>
+This helper is used whenthe edit and new form are posted. It returns
+a list of errors found, or an empty list if no errors are found. This
+is where password validation is done for a room.
+</p>
+<div class="org-src-container">
+<pre class="src src-python" id="org5a8faf4">def check_form_validity(requests):
+    roomTitle = request.form['title']
+    roomFloor_Name = request.form['floor_name']
+    roomPassword = request.form['password']
+    roomLinks = request.form['links']
+    
+    #check for empty fields
+    
+    errors = []
+    
+    if not roomTitle:
+        errors.append('Title field is empty')
+    if not roomFloor_Name:
+        errors.append('Floor Name field is empty')
+    if not roomPassword:
+        errors.append('Password field is empty')
+    if not roomLinks:
+        errors.append('Title field is empty')
+        
+    illegalChars = set(roomFloor_Name) - set(string.ascii_letters + string.digits)
+    if illegalChars:
+        errors.append('Floor name must be ascii letters and numbers only, {} not allowed'.format(illegalChars))
+    if not verify_floor_name(roomFloor_Name, roomPassword):
+        errors.append('Incorrect password for floor {}'.format(roomFloor_Name))
+    return errors
+</pre>
+</div>
+</div>
+</div>
+</div>
+
+
+
+<div id="outline-container-orgbcd0757" class="outline-2">
+<h2 id="orgbcd0757"><span class="section-number-2">6.</span> Views</h2>
+<div class="outline-text-2" id="text-6">
+<p>
+The Jinja template system is used to generate HTML. Parameters are
+passed to templates through the <code>render_template</code> method, and can then
+be used as normal python code within the template.
+</p>
+</div>
+
+<div id="outline-container-org0aff726" class="outline-3">
+<h3 id="org0aff726"><span class="section-number-3">6.1.</span> Base Template</h3>
+<div class="outline-text-3" id="text-6-1">
+<p>
+The HTML from templates that inherit from base.html is inserted
+between the tags <code>{% block content %}{% endblock %}</code>
+</p>
+
+<div class="org-src-container">
+<pre class="src src-html">&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;
+{% block head %}
+    &lt;!-- &lt;link rel="stylesheet" href="static/style.css" /&gt;
+&lt;style&gt;
+td {
+  text-align: left;
+  vertical-align: middle;
+}
+th {
+  text-align: left;
+  vertical-align: middle;
+}
+&lt;body style="padding-left: 5%; padding-right: 5%;"&gt;
+&lt;/style&gt;
+ --&gt;
+&lt;a href="/new"&gt;new&lt;/a&gt; &lt;a href="/discover"&gt;discover&lt;/a&gt; &lt;a href="/help"&gt;help&lt;/a&gt; &lt;a href="/"&gt;home&lt;/a&gt;&lt;br&gt;
+&lt;title&gt;{% block title %}{% endblock %} - LinkRoom&lt;/title&gt;
+{% endblock %}
+&lt;/head&gt;
+&lt;body &gt;
+  &lt;div id="content"&gt;{% block content %}{% endblock %}&lt;/div&gt;
+  &lt;div id="footer"&gt;
+    {% block footer %}{% endblock %}
+  &lt;/div&gt;  
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgd4a6dca" class="outline-3">
+<h3 id="orgd4a6dca"><span class="section-number-3">6.2.</span> Form Template</h3>
+<div class="outline-text-3" id="text-6-2">
+<p>
+The <code>form.html</code> template is the basis for the <code>new</code> and <code>edit</code> pages,
+which are nearly identical . The blocks to be filled in are <code>title</code>, <code>header</code> and <code>fields</code>.
+</p>
+
+<p>
+<span class="underline">Parameters</span>
+</p>
+<ul class="org-ul">
+<li><b>title</b> the raw text from the title input box</li>
+<li><b>links</b> the raw text from the links input box</li>
+</ul>
+
+<div class="org-src-container">
+<pre class="src src-html">{% extends "base.html" %}
+{% block title %}{% endblock %}
+{% block content %}
+&lt;h1&gt; {% block header %}{% endblock %} &lt;/h1&gt;
+&lt;ul&gt;
+ &lt;li&gt;labels must end in a colon:&lt;/li&gt;
+ &lt;li&gt;[links are in markdown format](&lt;a href="https://www.markdownguide.org/basic-syntax#links"&gt;https://www.markdownguide.org/basic-syntax#links&lt;/a&gt;)&lt;/li&gt;
+ &lt;li&gt;one label &lt;strong&gt;or&lt;/strong&gt; link per line&lt;/li&gt;
+ &lt;li&gt;order is not preserved: labels will be displayed in alphabetical order&lt;/li&gt;
+&lt;/ul&gt;
+
+Title:&lt;br&gt;
+&lt;textarea name="title" rows="1" cols="80" form="linkform"&gt;{{ title }}&lt;/textarea&gt; 
+&lt;br&gt;&lt;br&gt;
+Links:&lt;br&gt;
+&lt;textarea name="links" rows="32" cols="80" form="linkform"&gt;{{ links }}&lt;/textarea&gt;
+&lt;br&gt;
+
+&lt;form method="POST" id="linkform"&gt;
+  &lt;br&gt;
+  {% block fields %}{% endblock %}
+  &lt;input type="submit" value="Save Room"&gt;
+&lt;/form&gt;
+{% if errors %}
+    &lt;h2&gt;Errors:&lt;/h2&gt;
+    &lt;blockquote&gt;
+      {% for error in errors %}
+         &lt;li&gt; {{ error }} &lt;/li&gt;&lt;br&gt;
+      {% endfor %}
+    &lt;/blockquote&gt;
+{% endif %}
+{% endblock %}
+</pre>
+</div>
+</div>
+
+<div id="outline-container-org19dcfcc" class="outline-4">
+<h4 id="org19dcfcc"><span class="section-number-4">6.2.1.</span> New Form</h4>
+<div class="outline-text-4" id="text-6-2-1">
+<p>
+<span class="underline">Parameters</span>
+</p>
+<ul class="org-ul">
+<li><b>floor_name</b> the raw text from the floor_name input box</li>
+<li><b>password</b> the raw text from the password input box</li>
+</ul>
+
+<div class="org-src-container">
+<pre class="src src-html">{% extends "form.html" %}
+{% block title %} new room {% endblock %}
+{% block header %} new room {% endblock %}
+{% block fields %}
+&lt;dl&gt;
+  &lt;dt&gt; floor name: &lt;/dt&gt;
+  &lt;dd&gt;&lt;input type="text" name="floor_name" value="{{ floor_name }}"&gt;&lt;/dd&gt;
+  &lt;dt&gt;password (do &lt;strong&gt;not&lt;/strong&gt; lose, can't be recovered):&lt;/dt&gt;
+  &lt;dd&gt;&lt;input type="text" name="password" value="{{ password }}"&gt;&lt;/dd&gt;
+&lt;/dl&gt;
+ 
+  
+  
+  
+{% endblock %}
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orge7dbaba" class="outline-4">
+<h4 id="orge7dbaba"><span class="section-number-4">6.2.2.</span> Edit Form</h4>
+<div class="outline-text-4" id="text-6-2-2">
+<p>
+<span class="underline">Parameters</span>
+</p>
+<ul class="org-ul">
+<li><b>floor_name</b> the raw text from the floor_name input box</li>
+<li><b>password</b> the raw text from the password input box</li>
+<li><b>new_password</b> the raw text from the new_password input box</li>
+</ul>
+
+<div class="org-src-container">
+<pre class="src src-html">{% extends "form.html" %}
+{% block title %} edit room {% endblock %}
+{% block header %} edit room {% endblock %}
+{% block fields %}
+  &lt;dl&gt;
+    &lt;dt&gt;floor name: &lt;/dt&gt;
+    &lt;dd&gt;&lt;input type="text" name="floor_name" value="{{ floor_name }}"&gt;&lt;/dd&gt;
+    &lt;dt&gt;password:&lt;/dt&gt;
+    &lt;dd&gt;&lt;input type="text" name="password" value="{{ password }}"&gt;&lt;/dd&gt;
+    &lt;dt&gt;set new password (optional):&lt;/dt&gt;
+    &lt;dd&gt;&lt;input type="text" name="new_password" value=""&gt;&lt;/dd&gt;
+  &lt;/dl&gt;
+
+   
+
+{% endblock %}
+</pre>
+</div>
+</div>
+</div>
+</div>
+
+
+
+<div id="outline-container-org1bddb25" class="outline-3">
+<h3 id="org1bddb25"><span class="section-number-3">6.3.</span> Room Template</h3>
+<div class="outline-text-3" id="text-6-3">
+<p>
+Unlabeled links are rendered on the same indentation as labels, while
+labeled links are indented relative to the labels. Recall that
+unlabeled links are associated to the empty string in the
+<code>labelToLinks</code> dict.
+</p>
+
+<p>
+<span class="underline">Parameters</span>
+</p>
+<ul class="org-ul">
+<li><b>room</b> a dict corresponding to the room schema see</li>
+<li><b>labelToLinks</b> a dict of label =&gt; list(link) see</li>
+<li><b>doors</b> list of room dicts</li>
+</ul>
+
+
+<div class="org-src-container">
+<pre class="src src-html">{% extends "base.html" %}
+{% block title %}{{ room['title'] }}{% endblock %}
+{% block content %}
+&lt;h1&gt; {{ room['title'] }} &lt;/h1&gt; 
+on floor &lt;a href="/floor/{{ room['floor_name'] }}"&gt;{{ room['floor_name'] }}&lt;/a&gt;
+&lt;p&gt;&lt;a href="/room/{{ room['slug'] }}/edit"&gt;edit&lt;/a&gt;
+&lt;a href="/room/{{ room['slug'] }}/delete"&gt;delete&lt;/a&gt;&lt;/p&gt;
+&lt;br&gt;
+{% for label, links in labelToLinks.items() %}
+    {% if label == '' %}
+        {% for link in links %}
+            
+            &lt;a href="{{ link['url'] }}"&gt;{{ link['description'] }}&lt;/a&gt; ({{ link['domainName'] }})&lt;br&gt;
+ 
+        {% endfor %}  
+    {% else %}
+        &lt;strong&gt; {{ label  }} &lt;/strong&gt;
+        &lt;blockquote&gt;
+        {% for link in links %}
+            
+            &lt;a href="{{ link['url'] }}"&gt;{{ link['description'] }}&lt;/a&gt;  ({{ link['domainName'] }})&lt;br&gt;
+ 
+        {% endfor %}
+        &lt;/blockquote&gt;
+    {% endif %}
+{% endfor %}
+&lt;h4&gt;Doors&lt;/h4&gt;
+{% for door in doors %}
+    &lt;a href="{{ door['slug'] }}"&gt;{{ door['title'] }}&lt;/a&gt; on floor &lt;a href="/floor/{{ door['floor_name'] }}"&gt; {{ door['floor_name'] }}&lt;/a&gt;&lt;br&gt;
+{% endfor %}
+{% endblock %}
+
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgb103cc1" class="outline-3">
+<h3 id="orgb103cc1"><span class="section-number-3">6.4.</span> Delete Room</h3>
+<div class="outline-text-3" id="text-6-4">
+<p>
+<span class="underline">Parameters</span>
+</p>
+<ul class="org-ul">
+<li><b>room</b> a dict corresponding to the room schema see</li>
+<li><b>success</b> a boolean flag which is true when the delete operation is
+executed and false otherwise. If the room has not yet been deleted,
+then the form will displayed, otherwise a message</li>
+</ul>
+<div class="org-src-container">
+<pre class="src src-html">{% extends "base.html" %}
+{% block title %} Delete Room {{ room['title'] }}{% endblock %}
+{% block content %}
+&lt;h1&gt; delete room "{{ room['title'] }}" &lt;/h1&gt;
+{% if not success %}
+  &lt;h3&gt;THIS WILL PERMENANTLY DELETE THE ROOM&lt;/h3&gt;
+  &lt;form method="POST" id="deleteform"&gt;
+    &lt;br&gt;
+    Password: &lt;input type="text" name="password" value=""&gt;
+    &lt;input type="submit" value="Delete Room"&gt;
+  &lt;/form&gt;
+{% else %}
+  &lt;p&gt; Successfully deleted &lt;/p&gt;
+{% endif %}
+{% if errors %}
+    &lt;h2&gt;Errors:&lt;/h2&gt;
+    &lt;blockquote&gt;
+      {% for error in errors %}
+         &lt;li&gt; {{ error }} &lt;/li&gt;&lt;br&gt;
+      {% endfor %}
+    &lt;/blockquote&gt;
+{% endif %}
+{% endblock %}
+
+</pre>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-orgddad503" class="outline-3">
+<h3 id="orgddad503"><span class="section-number-3">6.5.</span> Floor Template</h3>
+<div class="outline-text-3" id="text-6-5">
+<p>
+<span class="underline">Parameters</span>
+</p>
+<ul class="org-ul">
+<li><b>rooms</b> a list of dicts corresponding to the room schema see</li>
+<li><b>floor_name</b> string corresponding to the floor_name
+field in the room table</li>
+</ul>
+
+
+<div class="org-src-container">
+<pre class="src src-html">{% extends "base.html" %}
+{% block title %}Floor {{ floor_name }}{% endblock %}
+{% block content %}
+&lt;h1&gt; you are on floor {{ floor_name }} &lt;/h1&gt;
+&lt;h3&gt;Here you can find the following rooms:&lt;/h3&gt;
+{% for room in rooms %}
+    &lt;a href="/room/{{ room['slug'] }}"&gt;{{ room['title'] }}&lt;/a&gt;&lt;br&gt;
+{% endfor %}
+{% endblock %}
+
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orge841e12" class="outline-3">
+<h3 id="orge841e12"><span class="section-number-3">6.6.</span> Discover</h3>
+<div class="outline-text-3" id="text-6-6">
+<p>
+<span class="underline">Parameters</span>
+</p>
+<ul class="org-ul">
+<li><b>floors</b> a list of strings</li>
+<li><b>rooms</b> a list of dicts corresponding to the room schema see</li>
+<li><b>links</b> a list of dicts with the keys {'url', 'description', 'domain'}</li>
+</ul>
+
+<div class="org-src-container">
+<pre class="src src-html">{% extends "base.html" %}
+{% block title %} Discover {% endblock %}
+{% block content %}
+&lt;h1&gt; discover &lt;/h1&gt;
+&lt;form method="POST" id="discoverform"&gt;
+  &lt;br&gt;
+  containing the domain: &lt;input type="text" name="domain" value=""&gt;
+  &lt;input type="submit" value="discover!"&gt;
+&lt;/form&gt;
+&lt;br&gt;
+(the &lt;strong&gt;domain&lt;/strong&gt; is the part of the url displayed in parenthesis after each link)
+&lt;br&gt;&lt;br&gt;
+&lt;strong&gt;floors&lt;/strong&gt;
+&lt;blockquote&gt;
+  {% for floor in floors %}
+    &lt;a href="/floor/{{ floor }}"&gt;{{ floor }}&lt;/a&gt;&lt;br&gt;
+  {% endfor %}
+&lt;/blockquote&gt;
+&lt;strong&gt;rooms&lt;/strong&gt;
+&lt;blockquote&gt;
+  {% for room in rooms %}
+    &lt;a href="/room/{{ room['slug'] }}"&gt;{{ room['title'] }}&lt;/a&gt;&lt;br&gt;
+  {% endfor %}
+&lt;/blockquote&gt;
+
+&lt;strong&gt;links&lt;/strong&gt;
+&lt;blockquote&gt;
+  {% for link in links %}
+    &lt;a href="{{ link['url'] }}"&gt;{{ link['description'] }}&lt;/a&gt; ({{ link['domainName'] }}) &lt;br&gt;
+  {% endfor %}
+&lt;/blockquote&gt;
+
+
+{% endblock %}
+
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org2a851a7" class="outline-3">
+<h3 id="org2a851a7"><span class="section-number-3">6.7.</span> Homepage</h3>
+<div class="outline-text-3" id="text-6-7">
+<div class="org-src-container">
+<pre class="src src-html">{% extends "base.html" %}
+{% block title %}linktower{% endblock %}
+{% block content %}
+&lt;h1&gt;home&lt;/h1&gt;
+
+&lt;h4&gt;what&lt;/h4&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;linktower is a pastebin for links only.&lt;/li&gt;
+  &lt;li&gt;a "room" is a collection of links.&lt;/li&gt;
+  &lt;li&gt;a "floor" is a collection of rooms.&lt;/li&gt;
+  &lt;li&gt;&lt;a href="/new"&gt;"new"&lt;/a&gt; to make your own.&lt;/li&gt;
+  &lt;li&gt;&lt;a href="/discover"&gt;"discover"&lt;/a&gt; to browse.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h4&gt;why&lt;/h4&gt;
+&lt;ul&gt;
+  &lt;li&gt;more explorable than a typical pastebin site&lt;/li&gt;
+  &lt;li&gt;minimalist &lt;a href="/source"&gt;design&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;fully documented &lt;a href="/source"&gt;source code&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;no registration&lt;/li&gt;
+  &lt;li&gt;no tracking&lt;/li&gt;
+  &lt;li&gt;i like lists&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h4&gt;how&lt;/h4&gt;
+&lt;ul&gt;
+  &lt;li&gt;python + flask + sqlite + html&lt;/li&gt;
+  &lt;li&gt;&lt;a href="https://orgmode.org/"&gt;org mode&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href="http://literateprogramming.com"&gt;literate programming&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h4&gt;rules&lt;/h4&gt;
+&lt;ul&gt;
+  &lt;li&gt;don't link to anything illegal&lt;/li&gt;
+  &lt;li&gt;no spamming&lt;/li&gt;
+  &lt;li&gt;no nsfw&lt;/li&gt;
+  &lt;li&gt;&lt;a href="/license"&gt;license&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h4&gt;get&lt;/h4&gt;
+&lt;ul&gt;
+  &lt;li&gt;&lt;a href="/source"&gt;org file w/code + docs&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+{% endblock %}
+</pre>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgb69c88d" class="outline-3">
+<h3 id="orgb69c88d"><span class="section-number-3">6.8.</span> Help</h3>
+<div class="outline-text-3" id="text-6-8">
+<div class="org-src-container">
+<pre class="src src-html">{% extends "base.html" %}
+{% block title %}linktower{% endblock %}
+{% block content %}
+&lt;h1&gt;help&lt;/h1&gt;
+
+&lt;h4&gt;example&lt;/h4&gt;
+&lt;blockquote&gt;
+[unlabeled link](https://example.com/)&lt;br&gt;
+Label1:&lt;br&gt;
+[link for label1](https://example.com/links_must_be_unique)&lt;br&gt;
+[2nd link for label1](https://example.com/but_domains_can_repeat)&lt;br&gt;
+Labels can have spaces:&lt;br&gt;
+&lt;br&gt;
+&lt;br&gt;
+[link for Labels can have spaces](https://example.com/blank_lines_are_ignored)&lt;br&gt;
+Labels with no links are ignored:&lt;br&gt;
+&lt;/blockquote&gt;
+
+&lt;h4&gt;constraints&lt;/h4&gt;
+&lt;ul&gt;
+  &lt;li&gt; 1000 links+labels per room &lt;/li&gt;
+  &lt;li&gt; 150 characters per link description &lt;/li&gt;
+  &lt;li&gt; 100 characters per label &lt;/li&gt;
+  &lt;li&gt; 300 characters per room title &lt;/li&gt;
+  &lt;li&gt; 100 characters per floor name &lt;/li&gt;
+  &lt;li&gt; floor names are ascii only, no spaces &lt;/li&gt;
+&lt;/ul&gt;
+
+
+
+{% endblock %}
+</pre>
+</div>
+</div>
+</div>
+
+
+<div id="outline-container-orga757ef7" class="outline-3">
+<h3 id="orga757ef7"><span class="section-number-3">6.9.</span> Error page</h3>
+<div class="outline-text-3" id="text-6-9">
+<div class="org-src-container">
+<pre class="src src-html">{% extends "base.html" %}
+{% block title %} not found {% endblock %}
+{% block content%}
+&lt;h1&gt;Error&lt;/h1&gt;
+{{ msg }} not found
+{% endblock %}
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

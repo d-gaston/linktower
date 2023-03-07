@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+{% block head %}
+    <!-- <link rel="stylesheet" href="static/style.css" />
+<style>
+td {
+  text-align: left;
+  vertical-align: middle;
+}
+th {
+  text-align: left;
+  vertical-align: middle;
+}
+<body style="padding-left: 5%; padding-right: 5%;">
+</style>
+ -->
+<a href="/new">new</a> <a href="/discover">discover</a> <a href="/help">help</a> <a href="/">home</a><br>
+<title>{% block title %}{% endblock %} - LinkRoom</title>
+{% endblock %}
+</head>
+<body >
+  <div id="content">{% block content %}{% endblock %}</div>
+  <div id="footer">
+    {% block footer %}{% endblock %}
+  </div>  
+</body>
+</html>

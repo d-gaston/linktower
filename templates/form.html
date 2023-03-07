@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{% endblock %}
+{% block content %}
+<h1> {% block header %}{% endblock %} </h1>
+<ul>
+ <li>labels must end in a colon:</li>
+ <li>[links are in markdown format](<a href="https://www.markdownguide.org/basic-syntax#links">https://www.markdownguide.org/basic-syntax#links</a>)</li>
+ <li>one label <strong>or</strong> link per line</li>
+ <li>order is not preserved: labels will be displayed in alphabetical order</li>
+</ul>
+
+Title:<br>
+<textarea name="title" rows="1" cols="80" form="linkform">{{ title }}</textarea> 
+<br><br>
+Links:<br>
+<textarea name="links" rows="32" cols="80" form="linkform">{{ links }}</textarea>
+<br>
+
+<form method="POST" id="linkform">
+  <br>
+  {% block fields %}{% endblock %}
+  <input type="submit" value="Save Room">
+</form>
+{% if errors %}
+    <h2>Errors:</h2>
+    <blockquote>
+      {% for error in errors %}
+         <li> {{ error }} </li><br>
+      {% endfor %}
+    </blockquote>
+{% endif %}
+{% endblock %}

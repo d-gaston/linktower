@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %} Delete Room {{ room['title'] }}{% endblock %}
+{% block content %}
+<h1> delete room "{{ room['title'] }}" </h1>
+{% if not success %}
+  <h3>THIS WILL PERMENANTLY DELETE THE ROOM</h3>
+  <form method="POST" id="deleteform">
+    <br>
+    Password: <input type="text" name="password" value="">
+    <input type="submit" value="Delete Room">
+  </form>
+{% else %}
+  <p> Successfully deleted </p>
+{% endif %}
+{% if errors %}
+    <h2>Errors:</h2>
+    <blockquote>
+      {% for error in errors %}
+         <li> {{ error }} </li><br>
+      {% endfor %}
+    </blockquote>
+{% endif %}
+{% endblock %}

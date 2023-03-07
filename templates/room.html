@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}{{ room['title'] }}{% endblock %}
+{% block content %}
+<h1> {{ room['title'] }} </h1> 
+on floor <a href="/floor/{{ room['floor_name'] }}">{{ room['floor_name'] }}</a>
+<p><a href="/room/{{ room['slug'] }}/edit">edit</a>
+<a href="/room/{{ room['slug'] }}/delete">delete</a></p>
+<br>
+{% for label, links in labelToLinks.items() %}
+    {% if label == '' %}
+        {% for link in links %}
+            
+            <a href="{{ link['url'] }}">{{ link['description'] }}</a> ({{ link['domainName'] }})<br>
+ 
+        {% endfor %}  
+    {% else %}
+        <strong> {{ label  }} </strong>
+        <blockquote>
+        {% for link in links %}
+            
+            <a href="{{ link['url'] }}">{{ link['description'] }}</a>  ({{ link['domainName'] }})<br>
+ 
+        {% endfor %}
+        </blockquote>
+    {% endif %}
+{% endfor %}
+<h4>Doors</h4>
+{% for door in doors %}
+    <a href="{{ door['slug'] }}">{{ door['title'] }}</a> on floor <a href="/floor/{{ door['floor_name'] }}"> {{ door['floor_name'] }}</a><br>
+{% endfor %}
+{% endblock %}

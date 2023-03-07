@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}linktower{% endblock %}
+{% block content %}
+<h1>home</h1>
+
+<h4>what</h4>
+
+<ul>
+  <li>linktower is a pastebin for links only.</li>
+  <li>a "room" is a collection of links.</li>
+  <li>a "floor" is a collection of rooms.</li>
+  <li><a href="/new">"new"</a> to make your own.</li>
+  <li><a href="/discover">"discover"</a> to browse.</li>
+</ul>
+
+<h4>why</h4>
+<ul>
+  <li>more explorable than a typical pastebin site</li>
+  <li>minimalist <a href="/source">design</a></li>
+  <li>fully documented <a href="/source">source code</a></li>
+  <li>no registration</li>
+  <li>no tracking</li>
+  <li>i like lists</li>
+</ul>
+
+<h4>how</h4>
+<ul>
+  <li>python + flask + sqlite + html</li>
+  <li><a href="https://orgmode.org/">org mode</a></li>
+  <li><a href="http://literateprogramming.com">literate programming</a></li>
+</ul>
+
+<h4>rules</h4>
+<ul>
+  <li>don't link to anything illegal</li>
+  <li>no spamming</li>
+  <li>no nsfw</li>
+  <li><a href="/license">license</a></li>
+</ul>
+
+<h4>get</h4>
+<ul>
+  <li><a href="/source">org file w/code + docs</a></li>
+</ul>
+{% endblock %}

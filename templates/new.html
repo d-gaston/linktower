@@ -1,0 +1,15 @@
+{% extends "form.html" %}
+{% block title %} new room {% endblock %}
+{% block header %} new room {% endblock %}
+{% block fields %}
+<dl>
+  <dt> floor name: </dt>
+  <dd><input type="text" name="floor_name" value="{{ floor_name }}"></dd>
+  <dt>password (do <strong>not</strong> lose, can't be recovered):</dt>
+  <dd><input type="text" name="password" value="{{ password }}"></dd>
+</dl>
+ 
+  
+  
+  
+{% endblock %}

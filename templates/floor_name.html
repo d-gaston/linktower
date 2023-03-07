@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Floor {{ floor_name }}{% endblock %}
+{% block content %}
+<h1> you are on floor {{ floor_name }} </h1>
+<h3>Here you can find the following rooms:</h3>
+{% for room in rooms %}
+    <a href="/room/{{ room['slug'] }}">{{ room['title'] }}</a><br>
+{% endfor %}
+{% endblock %}
